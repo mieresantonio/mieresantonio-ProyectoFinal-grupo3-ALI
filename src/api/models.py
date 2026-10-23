@@ -106,3 +106,32 @@ class UserProgress(db.Model):
 
     user: Mapped["User"] = relationship(back_populates="progress")
     lesson: Mapped["Lesson"] = relationship(back_populates="user_progresses")
+
+
+class Certificate(db.Model):
+    __tablename__ = 'certificates'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id'), nullable=False)
+    learning_path_id: Mapped[int] = mapped_column(
+        ForeignKey('learning_paths.id'), nullable=False)
+    # Código público de verificación, p. ej. BK-AB12C-DE34F-56789.
+    # Cualquiera puede comprobarlo en /api/certificates/verify/<code>.
+    code: Mapped[str] = mapped_column(
+        String(30), unique=True, index=True, nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(default=func.now())
+
+    user: Mapped["User"] = relationship()
+    learning_path: Mapped["LearningPath"] = relationship()
+
+    def serialize(self):
+        holder = None
+        if self.user:
+            holder = self.user.username or self.user.email
+        return {
+            "id": self.id,
+            "code": self.code,
+            "path_id": self.learning_path_id,
+            "path_title": self.learning_path.title if self.learning_path else None,
+            "holder": holder,
+            "issued_at": self.issued_at.isoformat() if self.issued_at else None,
+        }

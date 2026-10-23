@@ -1,6 +1,7 @@
+import hashlib
 import os
 import re
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 from flask import request, jsonify, Blueprint
 from flask_cors import CORS
@@ -12,7 +13,7 @@ from flask_jwt_extended import (
 )
 from flask_mail import Message
 
-from api.models import db, User, UserType, LearningPath, Module, Lesson, Quiz, UserProgress
+from api.models import db, User, UserType, LearningPath, Module, Lesson, Quiz, UserProgress, Certificate
 from api.utils import APIException
 from api.mail import mail
 
@@ -509,6 +510,10 @@ def update_progress(user_id, lesson_id):
 
         progress.is_completed = body.get("is_completed", progress.is_completed)
         progress.quiz_score = body.get("quiz_score", progress.quiz_score)
+        # La fecha de finalización alimenta las rachas de la gamificación.
+        # Solo se sella la primera vez que la lección queda completada.
+        if progress.is_completed and progress.completed_at is None:
+            progress.completed_at = datetime.utcnow()
         db.session.commit()
         return jsonify({"message": "Progress updated"})
 
@@ -523,3 +528,189 @@ def handle_dashboard():
     user_id = get_jwt_identity()
     user = db.get_or_404(User, int(user_id))
     return jsonify({"message": "Bienvenido", "user": user.serialize()}), 200
+
+
+# ============================================================================
+# GAMIFICACIÓN (XP, niveles, rachas) y CERTIFICADOS VERIFICABLES — Fase 2
+# El XP y las rachas se DERIVAN del progreso ya guardado (sin tablas nuevas):
+#   XP = 100 por lección completada + la nota de cada quiz registrado.
+#   Racha = días consecutivos con al menos una lección completada
+#   (usa UserProgress.completed_at; las filas antiguas sin fecha no cuentan).
+# Los certificados sí se persisten (tabla certificates) para poder
+# verificarlos públicamente por su código.
+# ============================================================================
+
+LEVELS = [
+    (0, "Explorador"),
+    (300, "Aprendiz de bloques"),
+    (700, "Constructor"),
+    (1200, "Validador"),
+    (2000, "Nodo completo"),
+    (3200, "Arquitecto Web3"),
+]
+
+
+def _calcular_xp(progress_rows):
+    xp = 0
+    for p in progress_rows:
+        if p.is_completed:
+            xp += 100
+        if p.quiz_score is not None:
+            xp += p.quiz_score
+    return xp
+
+
+def _nivel_desde_xp(xp):
+    actual = LEVELS[0]
+    siguiente = None
+    for i, nivel in enumerate(LEVELS):
+        if xp >= nivel[0]:
+            actual = nivel
+            siguiente = LEVELS[i + 1] if i + 1 < len(LEVELS) else None
+    return actual, siguiente
+
+
+def _calcular_rachas(fechas):
+    """Devuelve (racha actual, mejor racha, días activos) desde completed_at."""
+    dias = sorted({f.date() for f in fechas if f is not None})
+    if not dias:
+        return 0, 0, 0
+    mejor = 1
+    racha = 1
+    for i in range(1, len(dias)):
+        racha = racha + 1 if (dias[i] - dias[i - 1]).days == 1 else 1
+        mejor = max(mejor, racha)
+    hoy = datetime.utcnow().date()
+    actual = 0
+    if dias[-1] in (hoy, hoy - timedelta(days=1)):
+        actual = 1
+        j = len(dias) - 1
+        while j > 0 and (dias[j] - dias[j - 1]).days == 1:
+            actual += 1
+            j -= 1
+    return actual, mejor, len(dias)
+
+
+@api.route('/gamification/me', methods=['GET'])
+@jwt_required()
+def gamification_me():
+    user_id = int(get_jwt_identity())
+    rows = db.session.execute(
+        db.select(UserProgress).filter_by(user_id=user_id)).scalars().all()
+
+    xp = _calcular_xp(rows)
+    (minimo, nombre), siguiente = _nivel_desde_xp(xp)
+    actual, mejor, dias_activos = _calcular_rachas(
+        [p.completed_at for p in rows])
+
+    if siguiente:
+        progreso_nivel = round((xp - minimo) / (siguiente[0] - minimo), 2)
+        faltan = siguiente[0] - xp
+    else:
+        progreso_nivel = 1.0
+        faltan = 0
+
+    return jsonify({
+        "xp": xp,
+        "level_name": nombre,
+        "level_min_xp": minimo,
+        "next_level_name": siguiente[1] if siguiente else None,
+        "next_level_xp": siguiente[0] if siguiente else None,
+        "xp_to_next": faltan,
+        "progress_to_next": progreso_nivel,
+        "streak_current": actual,
+        "streak_best": mejor,
+        "active_days": dias_activos,
+        "lessons_completed": sum(1 for p in rows if p.is_completed),
+        "quizzes_passed": sum(
+            1 for p in rows if p.quiz_score is not None and p.quiz_score >= 70),
+    }), 200
+
+
+def _resumen_ruta(user_id, path):
+    """(total lecciones, completadas, títulos con quiz sin aprobar ≥70)."""
+    lessons = [lesson for module in path.modules for lesson in module.lessons]
+    ids = [lesson.id for lesson in lessons]
+    rows = {}
+    if ids:
+        rows = {p.lesson_id: p for p in db.session.execute(
+            db.select(UserProgress).filter_by(user_id=user_id)
+            .where(UserProgress.lesson_id.in_(ids))).scalars().all()}
+    completadas = sum(
+        1 for lid in ids if rows.get(lid) and rows[lid].is_completed)
+    pendientes_quiz = []
+    for lesson in lessons:
+        if lesson.quiz is not None:
+            row = rows.get(lesson.id)
+            if not row or row.quiz_score is None or row.quiz_score < 70:
+                pendientes_quiz.append(lesson.title)
+    return len(lessons), completadas, pendientes_quiz
+
+
+@api.route('/certificates/claim', methods=['POST'])
+@jwt_required()
+def claim_certificate():
+    user = db.session.get(User, int(get_jwt_identity()))
+    body = request.get_json(silent=True) or {}
+    path = db.session.get(LearningPath, body.get("path_id"))
+    if not path:
+        return jsonify({"error": "Ruta no encontrada"}), 404
+
+    total, completadas, pendientes_quiz = _resumen_ruta(user.id, path)
+    if total == 0 or completadas < total:
+        return jsonify({
+            "error": "Aún no completas todas las lecciones de esta ruta",
+            "lessons_total": total,
+            "lessons_completed": completadas,
+        }), 400
+    if pendientes_quiz:
+        return jsonify({
+            "error": "Te falta aprobar estos quizzes con 70% o más",
+            "quizzes_pending": pendientes_quiz,
+        }), 400
+
+    existing = db.session.execute(
+        db.select(Certificate).filter_by(
+            user_id=user.id, learning_path_id=path.id)).scalars().one_or_none()
+    if existing:
+        return jsonify(existing.serialize()), 200
+
+    issued = datetime.utcnow()
+    digest = hashlib.sha256(
+        f"{user.id}:{path.id}:{user.email}:{issued.isoformat()}".encode()
+    ).hexdigest()[:15].upper()
+    cert = Certificate(
+        user_id=user.id,
+        learning_path_id=path.id,
+        code=f"BK-{digest[0:5]}-{digest[5:10]}-{digest[10:15]}",
+        issued_at=issued,
+    )
+    db.session.add(cert)
+    db.session.commit()
+    return jsonify(cert.serialize()), 201
+
+
+@api.route('/certificates/mine', methods=['GET'])
+@jwt_required()
+def my_certificates():
+    user_id = int(get_jwt_identity())
+    certs = db.session.execute(
+        db.select(Certificate).filter_by(user_id=user_id)
+        .order_by(Certificate.issued_at.desc())).scalars().all()
+    return jsonify([c.serialize() for c in certs]), 200
+
+
+@api.route('/certificates/verify/<string:code>', methods=['GET'])
+def verify_certificate(code):
+    cert = db.session.execute(
+        db.select(Certificate).filter_by(
+            code=code.strip().upper())).scalars().one_or_none()
+    if not cert:
+        return jsonify({"valid": False}), 404
+    return jsonify({
+        "valid": True,
+        "code": cert.code,
+        "holder": cert.user.username or cert.user.email,
+        "path": cert.learning_path.title,
+        "issued_at": cert.issued_at.isoformat() if cert.issued_at else None,
+    }), 200

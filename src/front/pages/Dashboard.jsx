@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
-import { ArrowRight, FileText } from "lucide-react";
+import { ArrowRight, FileText, Flame, Award } from "lucide-react";
+import { getGamification, getMyCertificates } from "../services/gamificationService";
 
 export const Dashboard = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -10,6 +11,8 @@ export const Dashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [usuario, setUsuario] = useState(null);
+    const [gami, setGami] = useState(null);
+    const [certs, setCerts] = useState([]);
 
     useEffect(() => {
         // Si no hay sesión iniciada, no tiene caso mostrar el panel: mandamos a login.
@@ -43,6 +46,11 @@ export const Dashboard = () => {
                 if (!progressResp.ok) throw new Error("No se pudo cargar tu progreso");
                 const progressData = await progressResp.json();
                 setProgress(progressData);
+
+                // Gamificación y certificados: si fallan, el panel
+                // simplemente no muestra esas secciones.
+                getGamification(store.token).then(setGami).catch(() => {});
+                getMyCertificates(store.token).then(setCerts).catch(() => {});
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -105,6 +113,70 @@ export const Dashboard = () => {
             <p className="text-muted mb-4" data-aos="fade-up">
                 Sigue avanzando en tu ruta de aprendizaje blockchain.
             </p>
+
+            {gami && (
+                <div className="card border-0 shadow-sm mb-4" data-aos="fade-up">
+                    <div className="card-body p-4">
+                        <div className="row align-items-center g-4">
+                            <div className="col-12 col-md-6">
+                                <span className="badge bg-warning-subtle text-warning-emphasis mb-2">
+                                    Nivel · {gami.level_name}
+                                </span>
+                                <h4 className="fw-bold mb-2">
+                                    {gami.xp} <span className="gradient-heading">XP</span>
+                                </h4>
+                                {gami.next_level_name ? (
+                                    <>
+                                        <div className="progress mb-2" role="progressbar" style={{ height: "10px" }}>
+                                            <div className="progress-bar" style={{ width: `${Math.round(gami.progress_to_next * 100)}%` }}></div>
+                                        </div>
+                                        <p className="text-secondary small mb-0">
+                                            Te faltan {gami.xp_to_next} XP para ser {gami.next_level_name}.
+                                            Ganas 100 XP por lección y la nota de cada quiz suma.
+                                        </p>
+                                    </>
+                                ) : (
+                                    <p className="text-secondary small mb-0">
+                                        Nivel máximo alcanzado. Eres de los primeros Arquitectos Web3 de Blockali.
+                                    </p>
+                                )}
+                            </div>
+                            <div className="col-6 col-md-3 text-center">
+                                <Flame size={30} style={{ color: "#fb923c" }} />
+                                <div className="fs-3 fw-bold">{gami.streak_current} días</div>
+                                <div className="text-secondary small">
+                                    racha actual · mejor: {gami.streak_best}
+                                </div>
+                            </div>
+                            <div className="col-6 col-md-3 text-center">
+                                <div className="fs-3 fw-bold text-primary">{gami.active_days}</div>
+                                <div className="text-secondary small">días activos aprendiendo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {certs.length > 0 && (
+                <div className="card border-0 shadow-sm mb-4" data-aos="fade-up">
+                    <div className="card-body p-4">
+                        <h5 className="fw-bold mb-3 d-flex align-items-center gap-2">
+                            <Award size={20} style={{ color: "var(--bk-gold)" }} /> Mis certificados
+                        </h5>
+                        {certs.map((cert) => (
+                            <div key={cert.id} className="d-flex justify-content-between align-items-center border-bottom py-2 flex-wrap gap-2">
+                                <span>
+                                    <b>{cert.path_title}</b>{" "}
+                                    <small className="text-secondary mono">{cert.code}</small>
+                                </span>
+                                <Link to={`/certificado/${cert.path_id}`} className="btn btn-outline-primary btn-sm rounded-pill px-3">
+                                    Ver certificado
+                                </Link>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {total > 0 && (
                 <div className="row g-3 mb-4">

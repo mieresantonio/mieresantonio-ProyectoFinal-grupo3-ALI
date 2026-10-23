@@ -587,6 +587,50 @@ hr {
 }
 .lab-block.bad .h { color: #f87171; }
 
+/* ---------- Certificado (Fase 2) ---------- */
+.bk-cert {
+  background: linear-gradient(180deg, #fdfbf7, #f3eee1);
+  color: #1c2438;
+  border-radius: 12px;
+  padding: 14px;
+  max-width: 880px;
+  box-shadow: 0 30px 60px -25px rgba(2, 6, 20, 0.8);
+}
+.bk-cert-inner {
+  border: 2px solid #c9a227;
+  border-radius: 8px;
+  padding: 46px 44px;
+  box-shadow: inset 0 0 0 5px #fdfbf7, inset 0 0 0 6px rgba(201, 162, 39, 0.5);
+}
+.bk-cert .text-muted { color: #5c6577 !important; }
+.bk-cert-eyebrow {
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #8a6d1f;
+}
+.bk-cert-name {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 2.1rem;
+  font-weight: 700;
+  color: #12275a;
+  margin: 6px 0 14px;
+}
+.bk-cert-path {
+  font-weight: 700;
+  background: var(--bk-grad);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: 14px;
+}
+@media print {
+  .navbar, footer, .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .bk-cert { box-shadow: none; max-width: 100%; }
+}
+
 /* ---------- Footer ---------- */
 footer.bk-footer {
   border-top: 1px solid var(--bk-line);
