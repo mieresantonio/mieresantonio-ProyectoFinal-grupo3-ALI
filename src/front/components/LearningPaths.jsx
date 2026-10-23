@@ -23,10 +23,8 @@ const LearningPaths = () => {
 
     return <div className="container py-5">
         <div className="row text-center mb-4">
-            <span className="badge bg-primary-subtle text-primary-emphasis mb-2 mx-auto" style={{ width: "fit-content" }}>
-                CATÁLOGO EDUCATIVO WEB3
-            </span>
-            <h3 className="fw-bold">Rutas de Aprendizaje</h3>
+            <span className="bk-eyebrow justify-content-center mb-2">Catálogo educativo Web3</span>
+            <h3 className="fw-bold">Rutas de <span className="gradient-heading">Aprendizaje</span></h3>
         </div>
         <div className="row g-4 pb-5">
             {store.learningPaths?.map((value, index) => {

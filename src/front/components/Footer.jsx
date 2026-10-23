@@ -5,7 +5,7 @@ export const Footer = () => {
 	const año = new Date().getFullYear();
 
 	return (
-		<footer className="mt-auto pt-5 pb-4" style={{ backgroundColor: "#111827" }}>
+		<footer className="bk-footer mt-auto pt-5 pb-4">
 			<div className="container text-white">
 				<div className="row g-4">
 					<div className="col-12 col-md-5">
@@ -22,6 +22,11 @@ export const Footer = () => {
 							<li className="mb-2">
 								<Link to="/courses" className="text-white-50 text-decoration-none">
 									Rutas de aprendizaje
+								</Link>
+							</li>
+							<li className="mb-2">
+								<Link to="/laboratorio" className="text-white-50 text-decoration-none">
+									Laboratorio interactivo
 								</Link>
 							</li>
 							<li className="mb-2">

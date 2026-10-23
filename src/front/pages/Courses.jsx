@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { getCourses } from "../services/coursesService";
 import { CourseFilterBar } from "../components/CourseFilterBar";
 import { CourseCard } from "../components/CourseCard";
+import { User, FileText, CheckCircle2, ShieldCheck } from "lucide-react";
 
 export const Courses = () => {
     const [courses, setCourses] = useState([]);
@@ -47,8 +48,8 @@ export const Courses = () => {
                 </div>
                 {localStorage.getItem("token") ? "" : <div className="col-md-4">
                     <div className="card border-0 shadow-sm p-3">
-                        <h6 className="fw-bold">
-                            <i className="fa-regular fa-user me-2 text-primary"></i>
+                        <h6 className="fw-bold d-flex align-items-center">
+                            <User size={17} className="me-2 text-primary" />
                             Modo Explorador
                         </h6>
                         <p className="text-muted small">
@@ -87,7 +88,7 @@ export const Courses = () => {
             {/* Franja de características, al final de la página */}
             <div className="row g-4 text-center">
                 <div className="col-md-4">
-                    <i className="fa-solid fa-file-lines fs-2 text-primary mb-2"></i>
+                    <span className="icon-chip mb-3"><FileText size={22} /></span>
                     <h6 className="fw-bold">Lecturas Markdown Estructuradas</h6>
                     <p className="text-muted small">
                         Contenido técnico detallado con fragmentos de código listos para
@@ -95,7 +96,7 @@ export const Courses = () => {
                     </p>
                 </div>
                 <div className="col-md-4">
-                    <i className="fa-solid fa-circle-check fs-2 text-success mb-2"></i>
+                    <span className="icon-chip green mb-3"><CheckCircle2 size={22} /></span>
                     <h6 className="fw-bold">Evaluaciones Interactivas</h6>
                     <p className="text-muted small">
                         Quizzes al finalizar cada módulo para afianzar conceptos clave con
@@ -103,7 +104,7 @@ export const Courses = () => {
                     </p>
                 </div>
                 <div className="col-md-4">
-                    <i className="fa-solid fa-shield-halved fs-2 text-info mb-2"></i>
+                    <span className="icon-chip cyan mb-3"><ShieldCheck size={22} /></span>
                     <h6 className="fw-bold">Acreditación Académica</h6>
                     <p className="text-muted small">
                         Certificados digitales emitidos al completar el 100% de los

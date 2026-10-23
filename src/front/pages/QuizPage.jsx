@@ -86,7 +86,7 @@ export const QuizPage = () => {
                 <div className="card border-0 shadow-sm mb-3" key={index}>
                     <div className="card-body p-4">
                         <div className="d-flex justify-content-between align-items-center mb-3">
-                            <span className="badge bg-light text-dark border rounded-pill">
+                            <span className="badge bg-primary-subtle rounded-pill px-3 py-2">
                                 Pregunta {index + 1} de {quiz.questions_data.length}
                             </span>
                             {currentUser?.role === "student" ?
@@ -97,15 +97,14 @@ export const QuizPage = () => {
                         {["a", "b", "c"].map((letra) => (
                             <div
                                 key={letra}
-                                className={`border rounded-3 p-3 mb-2
+                                className={`quiz-option mb-2
                                         ${respuestas[index] === letra ? "border-primary bg-primary-subtle" : ""}
                                         ${letra === pregunta.correct_option &&
                                         currentUser?.role === "admin" ?
                                         "bg-success-subtle border-success" : ""}`}
-                                style={{ cursor: "pointer" }}
                                 onClick={() => { if (!enviado) setRespuestas({ ...respuestas, [index]: letra }) }}
                             >
-                                <span className="badge bg-white text-dark border me-2">
+                                <span className="badge bg-primary-subtle me-2">
                                     {letra.toUpperCase()}
                                 </span>
                                 {pregunta["option_" + letra]}

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Clock } from "lucide-react";
 
 // Colores del badge de nivel, según el diseño.
 const LEVEL_BADGE_CLASS = {
@@ -28,8 +29,8 @@ export const CourseCard = ({ course }) => {
 				<div className="d-flex justify-content-between align-items-center mb-2">
 					<span className={`badge ${badgeClass}`}>{course.level}</span>
 					{course.duration_hours && (
-						<small className="text-muted">
-							<i className="fa-regular fa-clock me-1"></i>
+						<small className="text-secondary d-inline-flex align-items-center gap-1">
+							<Clock size={14} />
 							{course.duration_hours}
 						</small>
 					)}

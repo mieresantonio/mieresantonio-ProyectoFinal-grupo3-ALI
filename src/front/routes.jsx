@@ -7,9 +7,7 @@ import {
 } from "react-router-dom";
 import { Layout } from "./pages/Layout";
 import { Home } from "./pages/Home";
-import { Single } from "./pages/Single";
-import { Demo } from "./pages/Demo";
-//Aqui abajo se agrega lo nuevos componentes a importar 
+//Aqui abajo se agrega lo nuevos componentes a importar
 import { Login } from "./components/Login";
 import { Register } from "./components/Register";
 import { Dashboard } from "./pages/Dashboard";
@@ -18,6 +16,7 @@ import { Admin } from "./pages/Admin";
 import CoursePage from "./pages/CoursePage";
 import LessonPage from "./pages/LessonPage";
 import { QuizPage } from "./pages/QuizPage";
+import { Lab } from "./pages/Lab";
 import { VerifyEmail } from "./pages/VerifyEmail";
 import { ForgotPassword } from "./pages/ForgotPassword";
 import { ResetPassword } from "./pages/ResetPassword";
@@ -35,8 +34,6 @@ export const router = createBrowserRouter(
 
       {/* Nested Routes: Defines sub-routes within the BaseHome component. */}
       <Route path="/" element={<Home />} />
-      <Route path="/single/:theId" element={<Single />} />  {/* Dynamic route for single items */}
-      <Route path="/demo" element={<Demo />} />
 
       <Route path="/login" element={
         <div className="container mt-5 d-flex justify-content-center">
@@ -51,6 +48,7 @@ export const router = createBrowserRouter(
       <Route path="/verify-email" element={<VerifyEmail />} />
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/courses" element={<Courses />} />
+      <Route path="/laboratorio" element={<Lab />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="/course/:theId" element={<CoursePage />} />
       <Route path="/lesson/:pathId/:lessonId" element={<LessonPage />} />

@@ -4,6 +4,7 @@ import { Hero } from "../components/Hero";
 import { Features } from "../components/Features.jsx";
 import { HowItWorks } from "../components/HowItWorks.jsx";
 import LearningPaths from "../components/LearningPaths";
+import { LabTeaser } from "../components/LabTeaser.jsx";
 import { ForWho } from "../components/ForWho.jsx";
 import { CTA } from "../components/CTA.jsx";
 
@@ -18,9 +19,9 @@ export const Home = () => {
 	return (
 		<>
 			<PriceTicker />
-			{/* Todo lo de aquÃ­ abajo comparte un solo fondo continuo
-			    (degradado + patrÃ³n de red blockchain + blobs), en vez de
-			    que cada secciÃ³n tenga su propio fondo aislado. */}
+			{/* Todas las secciones comparten un solo fondo continuo
+			    (degradados + patrón de red blockchain + blobs suaves),
+			    en vez de que cada sección tenga su propio fondo aislado. */}
 			<div className="landing-decor">
 				<div className="hero-blob" style={{ width: "320px", height: "320px", background: "#7c3aed", top: "-80px", left: "-100px" }}></div>
 				<div className="hero-blob" style={{ width: "380px", height: "380px", background: "#06b6d4", top: "-60px", right: "-120px", animationDelay: "2s" }}></div>
@@ -32,6 +33,7 @@ export const Home = () => {
 				<Features />
 				<HowItWorks />
 				<LearningPaths />
+				<LabTeaser />
 				<ForWho />
 			</div>
 			{verifyUser() === null ? <CTA /> : ""}

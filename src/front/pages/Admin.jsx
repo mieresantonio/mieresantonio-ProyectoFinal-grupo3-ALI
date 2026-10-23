@@ -168,7 +168,7 @@ export const Admin = () => {
             </div>
 
             <div className="card border-0 shadow-sm">
-                <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                <div className="card-header d-flex justify-content-between align-items-center">
                     <h5 className="fw-bold mb-0">Rutas de aprendizaje</h5>
                     <button
                         className="btn btn-primary btn-sm rounded-pill px-3"
@@ -179,7 +179,7 @@ export const Admin = () => {
                 </div>
                 <div className="card-body">
                     {formRutaAbierto && (
-                        <div className="border rounded p-3 mb-3 bg-light">
+                        <div className="border rounded p-3 mb-3 lab-block">
                             <label className="form-label small fw-bold">Título de la ruta</label>
                             <input
                                 type="text"
