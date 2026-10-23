@@ -1,12 +1,19 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import CourseDescription from "../components/CourseDescription";
 import ModuleCard from "../components/ModuleCard";
 import { useEffect, useState } from "react";
+import { getMyCertificates, claimCertificate } from "../services/gamificationService";
+import useGlobalReducer from "../hooks/useGlobalReducer";
+import { Award } from "lucide-react";
 
 const CoursePage = () => {
 
     const [learningPath, setLearningPath] = useState();
     const [userProgress, setUserProgress] = useState();
+    const [cert, setCert] = useState(null);
+    const [certError, setCertError] = useState("");
+    const [claiming, setClaiming] = useState(false);
+    const { store } = useGlobalReducer();
     const params = useParams();
 
     const verifyUser = () => {
@@ -75,7 +82,31 @@ const CoursePage = () => {
     useEffect(() => {
         getLearningPath();
         getUserProgress();
+        if (verifyUser() === "student") {
+            getMyCertificates(store.token)
+                .then((certs) =>
+                    setCert(certs.find((c) => c.path_id === parseInt(params.theId)) || null))
+                .catch(() => {});
+        }
     }, [params.theId])
+
+    const handleClaim = async () => {
+        setClaiming(true);
+        setCertError("");
+        try {
+            const data = await claimCertificate(learningPath.id, store.token);
+            setCert(data);
+        } catch (err) {
+            const pendientes = err.detail?.quizzes_pending;
+            setCertError(
+                pendientes?.length
+                    ? `${err.message}: ${pendientes.join(", ")}`
+                    : err.message
+            );
+        } finally {
+            setClaiming(false);
+        }
+    };
 
     if (!learningPath) {
         return (
@@ -117,6 +148,23 @@ const CoursePage = () => {
                             <div className="progress-bar bg-primary"
                                 style={{ width: `${progressPath()}%` }}></div>
                         </div>
+                        {progressPath() === 100 && (
+                            <div className="mt-3">
+                                {cert ? (
+                                    <Link to={`/certificado/${learningPath.id}`} className="btn btn-success rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                                        <Award size={16} /> Ver mi certificado
+                                    </Link>
+                                ) : (
+                                    <>
+                                        <button type="button" className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2"
+                                            onClick={handleClaim} disabled={claiming}>
+                                            <Award size={16} /> {claiming ? "Emitiendo..." : "Reclamar certificado"}
+                                        </button>
+                                        {certError && <p className="text-danger small mt-2 mb-0">{certError}</p>}
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div> : ""}
