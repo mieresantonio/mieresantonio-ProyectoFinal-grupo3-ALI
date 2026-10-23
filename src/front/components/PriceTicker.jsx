@@ -22,7 +22,7 @@ export const PriceTicker = () => {
     const lista = [...precios, ...precios];
 
     return (
-        <div className="overflow-hidden py-2 border-bottom" style={{ backgroundColor: "#111827" }}>
+        <div className="overflow-hidden py-2 border-bottom" style={{ backgroundColor: "rgba(5,8,15,.85)" }}>
             <div className="d-flex ticker-track" style={{ width: "max-content" }}>
                 {lista.map((coin, i) => (
                     <div key={i} className="d-flex align-items-center px-4 text-white small">

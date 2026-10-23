@@ -1,81 +1,72 @@
-# WebApp boilerplate with React JS and Flask API
+# Blockali — Plataforma de aprendizaje de Blockchain
 
-Build web applications using React.js for the front end and python/flask for your backend API.
+**Aprende blockchain haciendo.** Blockali es una plataforma educativa en español con rutas de aprendizaje guiadas: lecciones en profundidad, quizzes con nota real, progreso persistente en tu cuenta y un enfoque honesto — *hecho para aprender, no para especular*.
 
-- Documentation can be found here: https://4geeks.com/docs/start/react-flask-template
-- Here is a video on [how to use this template](https://www.loom.com/share/f37c6838b3f1496c95111e515e83dd9b)
-- Integrated with Pipenv for package managing.
-- Fast deployment to Render [in just a few steps here](https://4geeks.com/docs/start/deploy-to-render-com).
-- Use of .env file.
-- SQLAlchemy integration for database abstraction.
+Nació como proyecto final del bootcamp Full Stack de **4Geeks Academy (Grupo 3)** y sigue evolucionando como producto.
 
-### 1) Installation:
+## Qué ofrece
 
-> If you use Github Codespaces (recommended) or Gitpod this template will already come with Python, Node and the Posgres Database installed. If you are working locally make sure to install Python 3.10, Node 
+- **Cuentas completas** — registro con verificación de correo, inicio de sesión con JWT, recuperación de contraseña y roles (estudiante / administrador).
+- **Rutas de aprendizaje** — rutas → módulos → lecciones en Markdown, con desbloqueo secuencial.
+- **Quizzes con nota real** — cada lección se evalúa; se aprueba con 70% o más y la nota queda registrada.
+- **Progreso persistente** — panel del estudiante con % de avance, quizzes aprobados y siguiente lección.
+- **Contenido inicial**:
+  - *Fundamentos de Blockchain* — conceptos esenciales, criptografía y wallets, consenso (Proof of Work).
+  - *Desarrollo de Smart Contracts* — estructura de Solidity y primer contrato.
+- **Ticker de precios** cripto en vivo en la portada.
+- **Panel de administración** para gestionar usuarios y contenido.
 
-It is recomended to install the backend first, make sure you have Python 3.10, Pipenv and a database engine (Posgress recomended)
+## Stack
 
-1. Install the python packages: `$ pipenv install`
-2. Create a .env file based on the .env.example: `$ cp .env.example .env`
-3. Install your database engine and create your database, depending on your database you have to create a DATABASE_URL variable with one of the possible values, make sure you replace the valudes with your database information:
+| Capa | Tecnología |
+| --- | --- |
+| Frontend | React 18 + Vite, React Router 6, Bootstrap 5 (sistema de diseño propio en tema oscuro) |
+| Backend | Flask, SQLAlchemy 2, Flask-JWT-Extended, Flask-Mail, Alembic |
+| Base de datos | PostgreSQL (SQLite en desarrollo) |
+| Despliegue | Render (`render.yaml` + `render_build.sh`) |
 
-| Engine    | DATABASE_URL                                        |
-| --------- | --------------------------------------------------- |
-| SQLite    | sqlite:////test.db                                  |
-| MySQL     | mysql://username:password@localhost:port/example    |
-| Postgress | postgres://username:password@localhost:5432/example |
+## Ejecutar en local
 
-4. Migrate the migrations: `$ pipenv run migrate` (skip if you have not made changes to the models on the `./src/api/models.py`)
-5. Run the migrations: `$ pipenv run upgrade`
-6. Run the application: `$ pipenv run start`
+Requisitos: Python 3.13 con Pipenv y Node ≥ 20.
 
-> Note: Codespaces users can connect to psql by typing: `psql -h localhost -U gitpod example`
+```bash
+# 1) Dependencias
+pipenv install
+npm install
 
-### Undo a migration
+# 2) Variables de entorno
+cp .env.example .env   # ajusta DATABASE_URL, FLASK_APP_KEY y credenciales de correo
 
-You are also able to undo a migration by running
+# 3) Base de datos y contenido inicial
+pipenv run flask db upgrade
+pipenv run flask insert-test-data
 
-```sh
-$ pipenv run downgrade
+# 4) Servidores (dos terminales)
+pipenv run start       # API Flask en :3001
+npm run dev            # Frontend Vite en :3000 (proxy /api → :3001)
 ```
 
-### Backend Populate Table Users
-
-To insert test users in the database execute the following command:
-
-```sh
-$ flask insert-test-users 5
-```
-
-And you will see the following message:
+## Estructura
 
 ```
-  Creating test users
-  test_user1@test.com created.
-  test_user2@test.com created.
-  test_user3@test.com created.
-  test_user4@test.com created.
-  test_user5@test.com created.
-  Users created successfully!
+src/
+  api/          API Flask: modelos, rutas, comandos, correo
+  app.py        Entrada del backend
+  front/
+    pages/      Vistas (Home, Courses, Dashboard, Lesson, Quiz, Admin…)
+    components/ Navbar, Hero, tarjetas de curso, Login/Register…
+    services/   Clientes de la API (cursos, quizzes, precios)
+    hooks/      Store global (useGlobalReducer)
+migrations/     Migraciones de base de datos (Alembic)
+docs/           Documentación auxiliar
 ```
 
-### **Important note for the database and the data inside it**
+## Seguridad
 
-Every Github codespace environment will have **its own database**, so if you're working with more people eveyone will have a different database and different records inside it. This data **will be lost**, so don't spend too much time manually creating records for testing, instead, you can automate adding records to your database by editing ```commands.py``` file inside ```/src/api``` folder. Edit line 32 function ```insert_test_data``` to insert the data according to your model (use the function ```insert_test_users``` above as an example). Then, all you need to do is run ```pipenv run insert-test-data```.
+- Contraseñas con hash (Werkzeug), nunca en texto plano.
+- Endpoints de progreso y administración protegidos con JWT y verificación de dueño/rol.
+- Verificación de correo antes de activar la cuenta.
 
-### Front-End Manual Installation:
+## Créditos
 
--   Make sure you are using node version 20 and that you have already successfully installed and runned the backend.
-
-1. Install the packages: `$ npm install`
-2. Start coding! start the webpack dev server `$ npm run start`
-
-## Publish your website!
-
-This boilerplate it's 100% read to deploy with Render.com and Heroku in a matter of minutes. Please read the [official documentation about it](https://4geeks.com/docs/start/deploy-to-render-com).
-
-### Contributors
-
-This template was built as part of the 4Geeks Academy [Coding Bootcamp](https://4geeksacademy.com/us/coding-bootcamp) by [Alejandro Sanchez](https://twitter.com/alesanchezr) and many other contributors. Find out more about our [Full Stack Developer Course](https://4geeksacademy.com/us/coding-bootcamps/part-time-full-stack-developer), and [Data Science Bootcamp](https://4geeksacademy.com/us/coding-bootcamps/datascience-machine-learning).
-
-You can find other templates and resources like this at the [school github page](https://github.com/4geeksacademy/).
+Proyecto final de 4Geeks Academy — Grupo 3 (ALI). Construido sobre la plantilla oficial react-flask de 4Geeks, muy modificada.

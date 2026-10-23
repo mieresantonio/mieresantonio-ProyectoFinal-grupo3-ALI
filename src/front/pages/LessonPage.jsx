@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { CheckCircle2, Circle, ArrowLeft, ArrowRight } from "lucide-react";
 
 const LessonPage = () => {
 
@@ -135,33 +136,33 @@ const LessonPage = () => {
                 <div className="ms-auto">
                     <button type="button"
                         className={`btn ${userProgress?.is_completed ?
-                            "btn-success" : "btn-outline-success"} rounded-pill`}
+                            "btn-success" : "btn-outline-success"} rounded-pill d-inline-flex align-items-center gap-2`}
                         onClick={handleLessonDone}>
-                        <i className={`${userProgress?.is_completed ?
-                            "fa-solid" : "fa-regular"} fa-circle-check`}></i> {userProgress?.is_completed ?
+                        {userProgress?.is_completed ?
+                            <CheckCircle2 size={17} /> : <Circle size={17} />} {userProgress?.is_completed ?
                                 "Completado" : "Marcar como completado"}
                     </button>
                 </div> : ""}
         </div>
         <div className="card border-0 shadow-sm mt-3">
             <div className="card-body p-4 p-md-5">
-                <div className="markdown-body">
+                <div className="lesson-content">
                     <Markdown remarkPlugins={[remarkGfm]}>{lesson?.content}</Markdown>
                 </div>
             </div>
         </div>
         <div className="d-flex justify-content-between pt-4 pb-2">
-            {lesson.order_number === 1 ? <Link to={`/course/${params.pathId}`} className="btn btn-outline-secondary rounded-pill">
-                <i className="fa-solid fa-arrow-left-long"></i> Volver al Curso
-            </Link> : <Link to={`/lesson/${params.pathId}/${previousLessonId()}`} className="btn btn-outline-secondary rounded-pill">
-                <i className="fa-solid fa-arrow-left-long"></i> Anterior
+            {lesson.order_number === 1 ? <Link to={`/course/${params.pathId}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
+                <ArrowLeft size={16} /> Volver al Curso
+            </Link> : <Link to={`/lesson/${params.pathId}/${previousLessonId()}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
+                <ArrowLeft size={16} /> Anterior
             </Link>}
             {nextLessonId() !== "quiz" ?
-                <Link to={`/lesson/${params.pathId}/${nextLessonId()}`} className="btn btn-primary rounded-pill px-4">
-                    Siguiente <i className="fa-solid fa-arrow-right"></i>
+                <Link to={`/lesson/${params.pathId}/${nextLessonId()}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                    Siguiente <ArrowRight size={16} />
                 </Link>
-                : <Link to={`/quizzes/${lesson.module_lessons[0].id}`} className="btn btn-primary rounded-pill px-4">
-                    Ir al Quiz <i className="fa-solid fa-arrow-right"></i>
+                : <Link to={`/quizzes/${lesson.module_lessons[0].id}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                    Ir al Quiz <ArrowRight size={16} />
                 </Link>}
         </div>
     </div>

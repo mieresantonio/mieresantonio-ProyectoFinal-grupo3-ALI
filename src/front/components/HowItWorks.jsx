@@ -3,36 +3,34 @@ import React from "react";
 export const HowItWorks = () => {
     const pasos = [
         {
-            numero: "1",
+            numero: "01",
             titulo: "Elige tu ruta",
             texto: "Empieza por los fundamentos o salta directo a smart contracts si ya tienes base."
         },
         {
-            numero: "2",
-            titulo: "Lee a tu ritmo",
-            texto: "Lecciones escritas, con ejemplos de código reales. Vuelves atrás cuando quieras."
+            numero: "02",
+            titulo: "Aprende haciendo",
+            texto: "Lecciones escritas con ejemplos reales y un laboratorio para experimentar con hashes y bloques sin riesgo."
         },
         {
-            numero: "3",
+            numero: "03",
             titulo: "Demuestra que lo entendiste",
-            texto: "Cada módulo cierra con una evaluación. Necesitas 70% para avanzar."
+            texto: "Cada lección cierra con una evaluación. Necesitas 70% para avanzar, y tu progreso queda guardado."
         }
     ];
 
     return (
-        <section className="py-5 bg-light">
+        <section className="py-5">
             <div className="container">
-                <h2 className="fw-bold text-center mb-5">Cómo funciona</h2>
+                <div className="text-center mb-5">
+                    <span className="bk-eyebrow justify-content-center mb-2">Cómo funciona</span>
+                    <h2 className="fw-bold">Tres pasos y estás <span className="gradient-heading">construyendo criterio</span></h2>
+                </div>
                 <div className="row g-4">
                     {pasos.map((paso) => (
                         <div className="col-12 col-md-4" key={paso.numero}>
-                            <div className="text-center px-3">
-                                <div
-                                    className="rounded-circle bg-primary text-white d-inline-flex align-items-center justify-content-center fw-bold mb-3"
-                                    style={{ width: "48px", height: "48px" }}
-                                >
-                                    {paso.numero}
-                                </div>
+                            <div className="card bk-hover h-100 p-4">
+                                <div className="step-num mb-3">{paso.numero}</div>
                                 <h5 className="fw-bold mb-2">{paso.titulo}</h5>
                                 <p className="text-secondary mb-0">{paso.texto}</p>
                             </div>

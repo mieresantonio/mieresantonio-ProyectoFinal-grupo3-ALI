@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
+import { ArrowRight, FileText } from "lucide-react";
 
 export const Dashboard = () => {
     const { store, dispatch } = useGlobalReducer();
@@ -135,17 +136,18 @@ export const Dashboard = () => {
             )}
 
             {siguienteLeccion && (
-                <div className="card border-0 shadow-sm mb-4 bg-primary text-white" data-aos="fade-up">
+                <div className="card border-0 shadow-sm mb-4 text-white" style={{ background: "var(--bk-grad)" }} data-aos="fade-up">
                     <div className="card-body p-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
                         <div>
-                            <span className="badge bg-white text-primary mb-2">Continuar aprendiendo</span>
-                            <h5 className="fw-bold mb-0">{siguienteLeccion.lesson_title}</h5>
+                            <span className="badge mb-2" style={{ background: "#fff", color: "#4c1d95" }}>Continuar aprendiendo</span>
+                            <h5 className="fw-bold mb-0 text-white">{siguienteLeccion.lesson_title}</h5>
                         </div>
                         <Link
                             to={`/lesson/${siguienteLeccion.path_id}/${siguienteLeccion.lesson_id}`}
-                            className="btn btn-light rounded-pill px-4 fw-semibold"
+                            className="btn rounded-pill px-4 fw-semibold d-inline-flex align-items-center gap-2"
+                            style={{ background: "#fff", color: "#4c1d95" }}
                         >
-                            Continuar <i className="fa-solid fa-arrow-right ms-1"></i>
+                            Continuar <ArrowRight size={16} />
                         </Link>
                     </div>
                 </div>
@@ -163,10 +165,10 @@ export const Dashboard = () => {
                         <Link
                             key={i}
                             to={`/lesson/${item.path_id}/${item.lesson_id}`}
-                            className="d-flex justify-content-between align-items-center border-bottom py-3 text-decoration-none text-dark"
+                            className="d-flex justify-content-between align-items-center border-bottom py-3 text-decoration-none lesson-row-link"
                         >
-                            <span>
-                                <i className="fa-regular fa-file-lines text-primary me-2"></i>
+                            <span className="d-inline-flex align-items-center">
+                                <FileText size={16} className="text-primary me-2" />
                                 {item.lesson_title || `Lección #${item.lesson_id}`}
                             </span>
                             <span className={`badge rounded-pill ${item.is_completed ? "bg-success" : "bg-secondary"}`}>

@@ -57,7 +57,7 @@ export const Navbar = () => {
 	const suggestions = [...matchingStatic, ...matchingCourses];
 
 	return (
-		<nav className="navbar navbar-light bg-white shadow-sm sticky-top py-3">
+		<nav className="navbar sticky-top py-3">
 			<div className="container d-flex align-items-center justify-content-between">
 				<Link to="/">
 					<Logo size={32} />
@@ -101,6 +101,9 @@ export const Navbar = () => {
 				<div className="d-flex align-items-center gap-2">
 					<Link to="/courses" className="btn btn-outline-primary rounded-pill">
 						Explorar Rutas
+					</Link>
+					<Link to="/laboratorio" className="btn btn-outline-primary rounded-pill">
+						Laboratorio
 					</Link>
 
 					{store.token ? (

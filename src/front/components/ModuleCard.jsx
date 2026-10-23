@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom"
+import { CheckCircle2, FileText, ArrowRight, GraduationCap, Play } from "lucide-react";
 
 const ModuleCard = ({ path, data, order, userType, userProgress }) => {
 
@@ -10,7 +11,7 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
     }
 
     return <div className="card h-100 border-0 shadow-sm">
-        <div className="card-header bg-white border-0 pt-3">
+        <div className="card-header border-0 pt-3" style={{ background: "transparent" }}>
             <div className="d-flex justify-content-between align-items-center mb-2">
                 <span className="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3">
                     Módulo {order}
@@ -27,8 +28,8 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                     <div className="row justify-content-between align-items-center">
                         <div className="col d-flex align-items-center">
                             {verifyProgress(lesson) ?
-                                <i className="fa-solid fa-circle-check fa-xl text-success"></i>
-                                : <i className="fa-regular fa-file-lines fa-xl text-secondary"></i>}
+                                <CheckCircle2 size={22} className="text-success flex-shrink-0" />
+                                : <FileText size={22} className="text-secondary flex-shrink-0" />}
                             <div className="d-flex flex-column justify-content-center ms-3">
                                 <h6 className="m-0">{lesson.title}</h6>
                             </div>
@@ -37,12 +38,12 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                             <div className="col-auto">
                                 {verifyProgress(lesson) ?
                                     <Link to={`/lesson/${path}/${lesson.id}`}
-                                        className="btn btn-outline-success btn-sm py-1 rounded-pill">
-                                        Repasar <i className="fa-solid fa-arrow-right"></i>
+                                        className="btn btn-outline-success btn-sm py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                        Repasar <ArrowRight size={13} />
                                     </Link>
                                     : <Link to={`/lesson/${path}/${lesson.id}`}
-                                        className="btn btn-outline-primary btn-sm py-1 rounded-pill">
-                                        Leer Lección <i className="fa-solid fa-arrow-right"></i>
+                                        className="btn btn-outline-primary btn-sm py-1 rounded-pill d-inline-flex align-items-center gap-1">
+                                        Leer Lección <ArrowRight size={13} />
                                     </Link>}
                             </div>
                             : userType === "admin" ?
@@ -53,16 +54,16 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                 </li>
             })}
         </ul>
-        <div className="card-footer bg-white border-0 d-flex justify-content-between align-items-center py-3">
-            <span className="text-muted small">
-                <i className="fa-solid fa-graduation-cap"></i> Evaluación del módulo
+        <div className="card-footer border-0 d-flex justify-content-between align-items-center py-3" style={{ background: "transparent" }}>
+            <span className="text-secondary small d-inline-flex align-items-center gap-2">
+                <GraduationCap size={16} /> Evaluación del módulo
             </span>
             <div>
                 {data?.lessons?.length === 0 ?
                     <span className="text-muted small">Sin lecciones aún</span>
                     : userType === "student" ?
-                        <Link to={`/quizzes/${data.lessons[data.lessons.length - 1].id}`} className="btn btn-primary btn-sm py-1 rounded-pill px-3">
-                            Realizar Quiz <i className="fa-solid fa-play fa-2xs ms-1"></i>
+                        <Link to={`/quizzes/${data.lessons[data.lessons.length - 1].id}`} className="btn btn-primary btn-sm py-1 rounded-pill px-3 d-inline-flex align-items-center gap-1">
+                            Realizar Quiz <Play size={12} />
                         </Link>
                         : userType === "admin" ?
                             <Link to={`/quizzes/${data.lessons[data.lessons.length - 1].id}`} className="btn btn-outline-secondary btn-sm py-1 rounded-pill px-3">
