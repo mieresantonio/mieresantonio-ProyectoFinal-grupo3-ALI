@@ -16,6 +16,36 @@ Nació como proyecto final del bootcamp Full Stack de **4Geeks Academy (Grupo 3)
 - **Ticker de precios** cripto en vivo en la portada.
 - **Panel de administración** para gestionar usuarios y contenido.
 
+## Lo nuevo: diseño web3, laboratorio, gamificación y certificados
+
+### Diseño oscuro web3 (fase 1)
+Sistema de diseño propio en tema oscuro con tokens de color, degradados y
+Lucide como único set de iconos. La portada se rediseñó como landing de
+producto y todas las páginas se adaptaron al mismo sistema.
+
+### Laboratorio interactivo — `/laboratorio`
+Aprende tocando, no solo leyendo:
+- **SHA-256 en vivo**: escribe un texto y ve su hash al instante.
+- **Cadena de 3 bloques manipulable**: cambia el contenido de un bloque y
+  observa cómo se rompe la cadena a partir de ese punto.
+
+### Gamificación
+El progreso da recompensas visibles:
+- **XP**: 100 puntos por cada lección completada, más los puntos de los
+  quizzes.
+- **6 niveles**: Explorador → Aprendiz de bloques → Constructor →
+  Validador → Nodo completo → Arquitecto Web3.
+- **Rachas**: días consecutivos de actividad, calculados desde el
+  progreso registrado.
+
+### Certificados verificables
+Al completar una ruta al 100% (todas las lecciones) con todos los quizzes
+aprobados (≥70%), puedes reclamar un certificado con código único
+`BK-XXXXX-XXXXX-XXXXX`:
+- **Certificado imprimible** en `/certificado/:pathId`.
+- **Verificación pública** en `/verificar/:code`: cualquiera puede
+  comprobar que un código corresponde a un certificado real.
+
 ## Stack
 
 | Capa | Tecnología |
