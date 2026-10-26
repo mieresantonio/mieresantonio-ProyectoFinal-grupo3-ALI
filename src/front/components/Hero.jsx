@@ -29,9 +29,9 @@ export const Hero = () => {
                     y evaluaciones reales con tu progreso guardado.
                 </p>
 
-                <div data-aos="fade-up" data-aos-delay="200">
+                <div className="d-flex flex-wrap justify-content-center gap-2" data-aos="fade-up" data-aos-delay="200">
                     {verifyUser() === null ?
-                        <Link to="/register" className="btn btn-primary btn-lg me-2">
+                        <Link to="/register" className="btn btn-primary btn-lg">
                             Empieza a aprender gratis <ArrowRight size={18} className="ms-1" />
                         </Link> : ""}
                     <Link to="/courses" className="btn btn-outline-primary btn-lg">

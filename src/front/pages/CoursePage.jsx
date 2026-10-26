@@ -9,6 +9,7 @@ import { Award } from "lucide-react";
 const CoursePage = () => {
 
     const [learningPath, setLearningPath] = useState();
+    const [loadError, setLoadError] = useState("");
     const [userProgress, setUserProgress] = useState();
     const [cert, setCert] = useState(null);
     const [certError, setCertError] = useState("");
@@ -23,6 +24,7 @@ const CoursePage = () => {
     }
 
     const getLearningPath = async () => {
+        setLoadError("");
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/learning-paths/${params.theId}`, {
                 method: 'GET',
@@ -39,6 +41,9 @@ const CoursePage = () => {
 
         } catch (error) {
             console.log(error);
+            // Antes, un fallo de red dejaba el spinner girando para
+            // siempre: ahora se muestra el error con forma de reintentar.
+            setLoadError("No se pudo cargar esta ruta. Revisa tu conexión e inténtalo de nuevo.");
         }
     }
 
@@ -108,10 +113,28 @@ const CoursePage = () => {
         }
     };
 
+    if (loadError) {
+        return (
+            <div className="container py-5">
+                <div className="alert alert-danger" role="alert">{loadError}</div>
+                <div className="d-flex flex-wrap gap-2">
+                    <button type="button" className="btn btn-primary rounded-pill px-4" onClick={getLearningPath}>
+                        Reintentar
+                    </button>
+                    <Link to="/courses" className="btn btn-outline-primary rounded-pill px-4">
+                        Ver todas las rutas
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     if (!learningPath) {
         return (
             <div className="container py-5 text-center" style={{ height: "75vh" }}>
-                <div className="spinner-border" role="status"></div>
+                <div className="spinner-border" role="status">
+                    <span className="visually-hidden">Cargando la ruta...</span>
+                </div>
             </div>
         );
     }
@@ -119,7 +142,7 @@ const CoursePage = () => {
     return <div className="container mt-4">
         <CourseDescription data={learningPath} userType={verifyUser()} />
         <div className="row my-3">
-            <div className="col">
+            <div className="col-12 col-lg-8">
                 <div className="d-flex justify-content-between align-items-center mb-2">
                     <h3 className="fw-bold mb-0">Módulos</h3>
                     <span className="badge bg-primary-subtle text-primary-emphasis">
@@ -128,13 +151,13 @@ const CoursePage = () => {
                 </div>
                 <div className="row">
                     {learningPath?.modules.sort((a, b) => a.id - b.id).map((module, index) => {
-                        return <div key={module.id} className={`${verifyUser() === "student" ? "col-12" : "col-6"} mb-4`}>
+                        return <div key={module.id} className="col-12 col-md-6 mb-4">
                             <ModuleCard path={learningPath.id} data={module} order={index + 1} userType={verifyUser()} userProgress={userProgress} />
                         </div>
                     })}
                 </div>
             </div>
-            {verifyUser() === "student" ? <div className="col">
+            {verifyUser() === "student" ? <div className="col-12 col-lg-4 mt-4 mt-lg-0">
                 <div className="card border-0 shadow-sm">
                     <div className="card-body p-4">
                         <span className="badge bg-primary-subtle text-primary-emphasis mb-2">
@@ -144,7 +167,8 @@ const CoursePage = () => {
                         <p className="text-muted small mb-3">
                             {progressPath()}% completado ({lessonsDoneOfPath()}/{totalLessonsOfPath()} lecciones)
                         </p>
-                        <div className="progress" role="progressbar" style={{ height: "10px" }}>
+                        <div className="progress" role="progressbar" aria-label="Progreso de la ruta"
+                            aria-valuenow={progressPath()} aria-valuemin={0} aria-valuemax={100} style={{ height: "10px" }}>
                             <div className="progress-bar bg-primary"
                                 style={{ width: `${progressPath()}%` }}></div>
                         </div>
@@ -160,7 +184,7 @@ const CoursePage = () => {
                                             onClick={handleClaim} disabled={claiming}>
                                             <Award size={16} /> {claiming ? "Emitiendo..." : "Reclamar certificado"}
                                         </button>
-                                        {certError && <p className="text-danger small mt-2 mb-0">{certError}</p>}
+                                        {certError && <p className="text-danger small mt-2 mb-0" role="alert">{certError}</p>}
                                     </>
                                 )}
                             </div>

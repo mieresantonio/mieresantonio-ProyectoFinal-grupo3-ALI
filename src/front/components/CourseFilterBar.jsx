@@ -15,6 +15,7 @@ export const CourseFilterBar = ({
                 className="form-control"
                 style={{ maxWidth: "350px" }}
                 placeholder="Buscar por título, Solidity, DeFi..."
+                aria-label="Buscar rutas por título"
                 value={searchText}
                 onChange={(e) => onSearchChange(e.target.value)}
             />

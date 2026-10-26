@@ -58,13 +58,15 @@ export const Login = () => {
                         </p>
                     </div>
 
-                    {error && <div className="alert alert-danger py-2">{error}</div>}
+                    {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Correo Electrónico</label>
+                            <label className="form-label fw-semibold" htmlFor="login-email">Correo Electrónico</label>
                             <input
+                                id="login-email"
                                 type="email"
+                                autoComplete="email"
                                 className="form-control"
                                 placeholder="estudiante@ejemplo.com"
                                 value={email}
@@ -74,13 +76,15 @@ export const Login = () => {
                         </div>
                         <div className="mb-4">
                             <div className="d-flex justify-content-between align-items-center">
-                                <label className="form-label fw-semibold mb-0">Contraseña</label>
+                                <label className="form-label fw-semibold mb-0" htmlFor="login-password">Contraseña</label>
                                 <Link to="/forgot-password" className="text-primary small">
                                     ¿Olvidaste tu contraseña?
                                 </Link>
                             </div>
                             <input
+                                id="login-password"
                                 type="password"
+                                autoComplete="current-password"
                                 className="form-control mt-1"
                                 placeholder="********"
                                 value={password}

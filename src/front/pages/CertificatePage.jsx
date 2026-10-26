@@ -24,7 +24,9 @@ export const CertificatePage = () => {
     if (loading) {
         return (
             <div className="container py-5 text-center">
-                <div className="spinner-border text-primary" role="status"></div>
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Cargando el certificado...</span>
+                </div>
             </div>
         );
     }
@@ -55,7 +57,7 @@ export const CertificatePage = () => {
 
     return (
         <div className="container py-5">
-            <div className="d-flex justify-content-between align-items-center mb-4 no-print">
+            <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4 no-print">
                 <Link
                     to="/dashboard"
                     className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2"
@@ -94,8 +96,8 @@ export const CertificatePage = () => {
                                 <ShieldCheck size={13} className="me-1" />
                                 Código de verificación
                             </small>
-                            <b className="mono">{cert.code}</b>
-                            <small className="text-muted d-block">
+                            <b className="mono bk-break">{cert.code}</b>
+                            <small className="text-muted d-block bk-break">
                                 Verifícalo en {verifyUrl}
                             </small>
                         </div>

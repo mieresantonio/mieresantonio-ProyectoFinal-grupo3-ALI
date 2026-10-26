@@ -51,14 +51,16 @@ export const ForgotPassword = () => {
                         </p>
                     </div>
 
-                    {error && <div className="alert alert-danger py-2">{error}</div>}
-                    {success && <div className="alert alert-success py-2">{success}</div>}
+                    {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
+                    {success && <div className="alert alert-success py-2" role="alert">{success}</div>}
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-4">
-                            <label className="form-label fw-semibold">Correo Electrónico</label>
+                            <label className="form-label fw-semibold" htmlFor="forgot-email">Correo Electrónico</label>
                             <input
+                                id="forgot-email"
                                 type="email"
+                                autoComplete="email"
                                 className="form-control"
                                 placeholder="ejemplo@correo.com"
                                 value={email}

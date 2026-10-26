@@ -14,11 +14,19 @@ export const Courses = () => {
     const [activeLevel, setActiveLevel] = useState("Todas las Rutas");
 
     // Carga los cursos reales desde el backend al montar la página.
-    useEffect(() => {
+    // Es una función aparte para que el botón "Reintentar" pueda
+    // volver a pedir los datos sin recargar toda la página.
+    const cargar = () => {
+        setLoading(true);
+        setError(null);
         getCourses()
             .then((data) => setCourses(data))
             .catch((err) => setError(err.message))
             .finally(() => setLoading(false));
+    };
+
+    useEffect(() => {
+        cargar();
     }, []);
 
     // Filtra en el navegador (client-side) por texto y por nivel.
@@ -70,16 +78,47 @@ export const Courses = () => {
                 onLevelChange={setActiveLevel}
             />
 
-            {loading && <p className="text-muted">Cargando rutas de aprendizaje...</p>}
-            {error && <div className="alert alert-danger">{error}</div>}
+            {loading && (
+                <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Cargando rutas de aprendizaje...</span>
+                    </div>
+                    <p className="text-muted small mt-2 mb-0">Cargando rutas de aprendizaje...</p>
+                </div>
+            )}
+            {error && (
+                <div className="alert alert-danger" role="alert">
+                    <p className="mb-2">{error}</p>
+                    <button type="button" className="btn btn-outline-danger btn-sm rounded-pill px-3" onClick={cargar}>
+                        Reintentar
+                    </button>
+                </div>
+            )}
             {!loading && !error && filteredCourses.length === 0 && (
-                <p className="text-muted">No hay rutas de aprendizaje todavía.</p>
+                <div className="py-3">
+                    {courses.length === 0 ? (
+                        <p className="text-muted">No hay rutas de aprendizaje todavía.</p>
+                    ) : (
+                        <>
+                            <p className="text-muted mb-2">
+                                Ninguna ruta coincide con tu búsqueda o filtro.
+                            </p>
+                            <button
+                                type="button"
+                                className="btn btn-outline-primary btn-sm rounded-pill px-3"
+                                onClick={() => { setSearchText(""); setActiveLevel("Todas las Rutas"); }}
+                            >
+                                Limpiar filtros
+                            </button>
+                        </>
+                    )}
+                </div>
             )}
 
             {/* Grilla de tarjetas de cursos */}
             <div className="row g-4 mb-5">
                 {filteredCourses.sort((a, b) => a.id - b.id).map((course) => (
-                    <div className="col-md-4" key={course.id}>
+                    <div className="col-12 col-md-6 col-lg-4" key={course.id}>
                         <CourseCard course={course} />
                     </div>
                 ))}

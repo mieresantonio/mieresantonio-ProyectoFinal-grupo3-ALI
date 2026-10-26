@@ -75,7 +75,10 @@ export const Dashboard = () => {
     if (error) {
         return (
             <div className="container py-5">
-                <div className="alert alert-danger">{error}</div>
+                <div className="alert alert-danger" role="alert">{error}</div>
+                <button type="button" className="btn btn-primary rounded-pill px-4" onClick={() => window.location.reload()}>
+                    Reintentar
+                </button>
             </div>
         );
     }
@@ -127,7 +130,8 @@ export const Dashboard = () => {
                                 </h4>
                                 {gami.next_level_name ? (
                                     <>
-                                        <div className="progress mb-2" role="progressbar" style={{ height: "10px" }}>
+                                        <div className="progress mb-2" role="progressbar" aria-label="Progreso hacia el siguiente nivel"
+                                            aria-valuenow={Math.round(gami.progress_to_next * 100)} aria-valuemin={0} aria-valuemax={100} style={{ height: "10px" }}>
                                             <div className="progress-bar" style={{ width: `${Math.round(gami.progress_to_next * 100)}%` }}></div>
                                         </div>
                                         <p className="text-secondary small mb-0">
@@ -239,8 +243,8 @@ export const Dashboard = () => {
                             to={`/lesson/${item.path_id}/${item.lesson_id}`}
                             className="d-flex justify-content-between align-items-center border-bottom py-3 text-decoration-none lesson-row-link"
                         >
-                            <span className="d-inline-flex align-items-center">
-                                <FileText size={16} className="text-primary me-2" />
+                            <span className="d-inline-flex align-items-center text-break">
+                                <FileText size={16} className="text-primary me-2 flex-shrink-0" />
                                 {item.lesson_title || `Lección #${item.lesson_id}`}
                             </span>
                             <span className={`badge rounded-pill ${item.is_completed ? "bg-success" : "bg-secondary"}`}>

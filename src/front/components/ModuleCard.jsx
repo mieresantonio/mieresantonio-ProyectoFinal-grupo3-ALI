@@ -31,7 +31,7 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                                 <CheckCircle2 size={22} className="text-success flex-shrink-0" />
                                 : <FileText size={22} className="text-secondary flex-shrink-0" />}
                             <div className="d-flex flex-column justify-content-center ms-3">
-                                <h6 className="m-0">{lesson.title}</h6>
+                                <h6 className="m-0 text-break">{lesson.title}</h6>
                             </div>
                         </div>
                         {userType === "student" ?

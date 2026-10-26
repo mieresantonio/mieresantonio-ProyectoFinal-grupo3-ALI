@@ -20,7 +20,9 @@ export const VerifyPage = () => {
     if (loading) {
         return (
             <div className="container py-5 text-center">
-                <div className="spinner-border text-primary" role="status"></div>
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Verificando el certificado…</span>
+                </div>
                 <p className="text-secondary small mt-3">Verificando el certificado…</p>
             </div>
         );
@@ -61,7 +63,7 @@ export const VerifyPage = () => {
                             </p>
                             <p className="mb-0">
                                 <small className="text-secondary d-block">Código</small>
-                                <b className="mono">{result.code}</b>
+                                <b className="mono bk-break">{result.code}</b>
                             </p>
                         </div>
                     </>

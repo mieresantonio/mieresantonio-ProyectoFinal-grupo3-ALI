@@ -69,8 +69,8 @@ export const ResetPassword = () => {
                         </p>
                     </div>
 
-                    {error && <div className="alert alert-danger py-2">{error}</div>}
-                    {success && <div className="alert alert-success py-2">{success}</div>}
+                    {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
+                    {success && <div className="alert alert-success py-2" role="alert">{success}</div>}
 
                     {success ? (
                         <button
@@ -82,9 +82,11 @@ export const ResetPassword = () => {
                     ) : (
                         <form onSubmit={handleSubmit}>
                             <div className="mb-3">
-                                <label className="form-label fw-semibold">Nueva Contraseña</label>
+                                <label className="form-label fw-semibold" htmlFor="reset-password">Nueva Contraseña</label>
                                 <input
+                                    id="reset-password"
                                     type="password"
+                                    autoComplete="new-password"
                                     className="form-control"
                                     placeholder="Mínimo 6 caracteres"
                                     value={password}
@@ -93,9 +95,11 @@ export const ResetPassword = () => {
                                 />
                             </div>
                             <div className="mb-4">
-                                <label className="form-label fw-semibold">Confirmar Nueva Contraseña</label>
+                                <label className="form-label fw-semibold" htmlFor="reset-password-confirm">Confirmar Nueva Contraseña</label>
                                 <input
+                                    id="reset-password-confirm"
                                     type="password"
+                                    autoComplete="new-password"
                                     className="form-control"
                                     placeholder="Repite la nueva contraseña"
                                     value={confirmPassword}

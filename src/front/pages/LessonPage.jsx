@@ -8,6 +8,7 @@ const LessonPage = () => {
 
     const params = useParams();
     const [lesson, setLesson] = useState();
+    const [loadError, setLoadError] = useState("");
     const [userProgress, setUserProgress] = useState({});
     const [error, setError] = useState("");
 
@@ -20,6 +21,7 @@ const LessonPage = () => {
     const currentUser = getCurrentUser();
 
     const getLesson = async () => {
+        setLoadError("");
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/lessons/${params.lessonId}`, {
                 method: 'GET',
@@ -37,6 +39,9 @@ const LessonPage = () => {
 
         } catch (error) {
             console.log(error);
+            // Antes, un fallo de red dejaba el spinner girando para
+            // siempre: ahora se muestra el error con forma de reintentar.
+            setLoadError("No se pudo cargar esta lección. Revisa tu conexión e inténtalo de nuevo.");
         }
     }
 
@@ -96,16 +101,20 @@ const LessonPage = () => {
     }
 
     const previousLessonId = () => {
-        const currentOrder = lesson.module_lessons.find(lesson => lesson.id === parseInt(params.lessonId)).order;
-        const previousLesson = lesson.module_lessons.find(lesson => lesson.order === currentOrder - 1);
+        const lessons = lesson.module_lessons || [];
+        const current = lessons.find(lesson => lesson.id === parseInt(params.lessonId));
+        if (!current) return "";
+        const previousLesson = lessons.find(lesson => lesson.order === current.order - 1);
         if (!previousLesson) return "";
         return previousLesson.id;
     }
 
 
     const nextLessonId = () => {
-        const currentOrder = lesson.module_lessons.find(lesson => lesson.id === parseInt(params.lessonId)).order;
-        const nextLesson = lesson.module_lessons.find(lesson => lesson.order === currentOrder + 1);
+        const lessons = lesson.module_lessons || [];
+        const current = lessons.find(lesson => lesson.id === parseInt(params.lessonId));
+        if (!current) return "quiz";
+        const nextLesson = lessons.find(lesson => lesson.order === current.order + 1);
         if (!nextLesson) return "quiz";
 
         return nextLesson.id;
@@ -116,17 +125,37 @@ const LessonPage = () => {
         getUserProgress();
     }, [params.lessonId])
 
-    if (!lesson) {
+    if (loadError) {
         return (
-            <div className="container py-5 text-center">
-                <div className="spinner-border text-primary" role="status"></div>
+            <div className="container py-5">
+                <div className="alert alert-danger" role="alert">{loadError}</div>
+                <div className="d-flex flex-wrap gap-2">
+                    <button type="button" className="btn btn-primary rounded-pill px-4" onClick={getLesson}>
+                        Reintentar
+                    </button>
+                    <Link to={`/course/${params.pathId}`} className="btn btn-outline-primary rounded-pill px-4">
+                        Volver al curso
+                    </Link>
+                </div>
             </div>
         );
     }
 
+    if (!lesson) {
+        return (
+            <div className="container py-5 text-center">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Cargando la lección...</span>
+                </div>
+            </div>
+        );
+    }
+
+    const hasQuiz = (lesson.module_lessons || []).length > 0;
+
     return <div className="container mt-4">
-        {error && <div className="alert alert-danger py-2">{error}</div>}
-        <div className="d-flex align-items-center">
+        {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
+        <div className="d-flex flex-wrap gap-2 align-items-center">
             <div>
                 <span className="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2">
                     Lección {lesson?.order_number}
@@ -146,12 +175,19 @@ const LessonPage = () => {
         </div>
         <div className="card border-0 shadow-sm mt-3">
             <div className="card-body p-4 p-md-5">
-                <div className="lesson-content">
-                    <Markdown remarkPlugins={[remarkGfm]}>{lesson?.content}</Markdown>
-                </div>
+                {lesson?.content?.trim() ? (
+                    <div className="lesson-content">
+                        <Markdown remarkPlugins={[remarkGfm]}>{lesson?.content}</Markdown>
+                    </div>
+                ) : (
+                    <p className="text-muted mb-0">
+                        Esta lección aún no tiene contenido. Vuelve pronto: el equipo
+                        la está preparando.
+                    </p>
+                )}
             </div>
         </div>
-        <div className="d-flex justify-content-between pt-4 pb-2">
+        <div className="d-flex flex-wrap gap-2 justify-content-between pt-4 pb-2">
             {lesson.order_number === 1 ? <Link to={`/course/${params.pathId}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
                 <ArrowLeft size={16} /> Volver al Curso
             </Link> : <Link to={`/lesson/${params.pathId}/${previousLessonId()}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
@@ -161,8 +197,10 @@ const LessonPage = () => {
                 <Link to={`/lesson/${params.pathId}/${nextLessonId()}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                     Siguiente <ArrowRight size={16} />
                 </Link>
-                : <Link to={`/quizzes/${lesson.module_lessons[0].id}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                : hasQuiz ? <Link to={`/quizzes/${lesson.module_lessons[0].id}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                     Ir al Quiz <ArrowRight size={16} />
+                </Link> : <Link to={`/course/${params.pathId}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                    Volver al Curso <ArrowRight size={16} />
                 </Link>}
         </div>
     </div>
