@@ -92,16 +92,17 @@ export const Lab = () => {
                         <small className="text-secondary">Escribe lo que sea y mira su SHA-256 cambiar al instante.</small>
                     </div>
                 </div>
-                <label className="form-label">Tu texto</label>
+                <label className="form-label" htmlFor="lab-texto">Tu texto</label>
                 <input
+                    id="lab-texto"
                     type="text"
                     className="form-control mb-3"
                     value={texto}
                     onChange={(e) => setTexto(e.target.value)}
                     placeholder="Escribe cualquier cosa…"
                 />
-                <label className="form-label">Su hash SHA-256</label>
-                <div className="lab-hash-out">{hashTexto}</div>
+                <span className="form-label d-block">Su hash SHA-256</span>
+                <div className="lab-hash-out" aria-live="polite" aria-label="Hash SHA-256 del texto">{hashTexto}</div>
                 <p className="text-secondary small mt-3 mb-0">
                     Prueba cambiar <b>una sola letra</b>: el hash cambia por completo (efecto avalancha).
                     Y no hay camino de vuelta: del hash no se puede recuperar el texto. Así se sellan los bloques.
@@ -131,10 +132,12 @@ export const Lab = () => {
                                             ? <span className="badge bg-danger-subtle text-danger-emphasis"><ShieldAlert size={12} className="me-1" />Inválido</span>
                                             : <span className="badge bg-success-subtle text-success-emphasis"><ShieldCheck size={12} className="me-1" />Válido</span>}
                                     </div>
-                                    <label className="form-label small mb-1">Contenido</label>
+                                    <label className="form-label small mb-1" htmlFor={`lab-bloque-${i}`}>Contenido</label>
                                     <input
+                                        id={`lab-bloque-${i}`}
                                         type="text"
                                         className="form-control form-control-sm mb-2"
+                                        aria-label={`Contenido del bloque ${i + 1}`}
                                         value={dato}
                                         onChange={(e) => editarDato(i, e.target.value)}
                                     />

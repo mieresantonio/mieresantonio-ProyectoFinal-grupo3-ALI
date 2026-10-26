@@ -28,7 +28,7 @@ const LearningPaths = () => {
         </div>
         <div className="row g-4 pb-5">
             {store.learningPaths?.map((value, index) => {
-                return <div key={value.id} className="col-md-4 col-xs-8">
+                return <div key={value.id} className="col-12 col-md-6 col-lg-4">
                     <LearningPathCard data={value} />
                 </div>
             })}

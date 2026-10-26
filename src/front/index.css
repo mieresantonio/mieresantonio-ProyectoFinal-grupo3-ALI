@@ -706,3 +706,27 @@ footer.bk-footer a:hover {
   .ticker-track, .hero-blob { animation: none; }
   html { scroll-behavior: auto; }
 }
+
+/* ---------- Fase 4: pulido responsive y accesibilidad ---------- */
+@media (max-width: 576px) {
+  .lab-panel { padding: 20px 16px; }
+  .bk-cert-inner { padding: 28px 20px; }
+  .bk-cert-name { font-size: 1.6rem; }
+}
+/* Rompe códigos y URLs largas en pantallas estrechas */
+.bk-break { overflow-wrap: anywhere; word-break: break-all; }
+/* Las opciones del quiz son botones: sin estilos nativos de botón */
+.quiz-option {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  color: var(--bk-text);
+  font: inherit;
+}
+.quiz-option:disabled { cursor: default; opacity: 1; }
+.quiz-option:disabled:hover {
+  border-color: var(--bk-line-2);
+  background: transparent;
+}
+/* El ticker se detiene al pasar el cursor por encima */
+.ticker-track:hover { animation-play-state: paused; }

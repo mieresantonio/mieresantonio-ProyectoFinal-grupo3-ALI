@@ -60,25 +60,30 @@ export const Register = () => {
                         </p>
                     </div>
 
-                    {error && <div className="alert alert-danger py-2">{error}</div>}
-                    {success && <div className="alert alert-success py-2">{success}</div>}
+                    {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
+                    {success && <div className="alert alert-success py-2" role="alert">{success}</div>}
 
                     <form onSubmit={handleSubmit}>
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Nombre de Usuario</label>
+                            <label className="form-label fw-semibold" htmlFor="register-username">Nombre de Usuario</label>
                             <input
+                                id="register-username"
                                 type="text"
+                                autoComplete="username"
                                 className="form-control"
                                 placeholder="Tu nombre"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
+                                required
                             />
                         </div>
 
                         <div className="mb-3">
-                            <label className="form-label fw-semibold">Correo Electrónico</label>
+                            <label className="form-label fw-semibold" htmlFor="register-email">Correo Electrónico</label>
                             <input
+                                id="register-email"
                                 type="email"
+                                autoComplete="email"
                                 className="form-control"
                                 placeholder="ejemplo@correo.com"
                                 value={email}
@@ -88,9 +93,11 @@ export const Register = () => {
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label fw-semibold">Contraseña</label>
+                            <label className="form-label fw-semibold" htmlFor="register-password">Contraseña</label>
                             <input
+                                id="register-password"
                                 type="password"
+                                autoComplete="new-password"
                                 className="form-control"
                                 placeholder="Mínimo 6 caracteres"
                                 value={password}

@@ -23,7 +23,7 @@ export const PriceTicker = () => {
 
     return (
         <div className="overflow-hidden py-2 border-bottom" style={{ backgroundColor: "rgba(5,8,15,.85)" }}>
-            <div className="d-flex ticker-track" style={{ width: "max-content" }}>
+            <div className="d-flex ticker-track" style={{ width: "max-content" }} aria-hidden="true">
                 {lista.map((coin, i) => (
                     <div key={i} className="d-flex align-items-center px-4 text-white small">
                         <span className="fw-bold me-2">{coin.symbol}</span>

@@ -3,8 +3,12 @@ import { Clock, BookOpen, Play, ArrowLeft } from "lucide-react";
 
 const CourseDescription = ({ data, userType }) => {
 
-    const totalLessons = data?.modules.reduce((num, module) =>
-        num + module.lessons.length, 0);
+    const modules = data?.modules || [];
+    const totalLessons = modules.reduce((num, module) =>
+        num + (module.lessons?.length || 0), 0);
+    // Primera lección de la ruta, si existe: sin ella, el botón
+    // "Comenzar ahora" rompería la página en rutas vacías.
+    const firstLessonId = modules[0]?.lessons?.[0]?.id;
 
     return <div className="container bg-dark text-white rounded-4 p-4 p-md-5">
         <div className="row align-items-center">
@@ -25,8 +29,8 @@ const CourseDescription = ({ data, userType }) => {
                     <p className="text-white-50">{data?.description}</p>
                 </div>
                 <div className="d-flex flex-wrap gap-2 mt-2">
-                    {userType === "student" ? (
-                        <Link to={`/lesson/${data?.id}/${data?.modules[0].lessons[0].id}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                    {userType === "student" && firstLessonId ? (
+                        <Link to={`/lesson/${data?.id}/${firstLessonId}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                             <Play size={16} /> Comenzar ahora
                         </Link>
                     ) : ""}

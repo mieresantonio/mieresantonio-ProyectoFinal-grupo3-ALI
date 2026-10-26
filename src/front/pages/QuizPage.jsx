@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { getQuizByLesson } from "../services/quizService.js";
 
 export const QuizPage = () => {
     const { lessonId } = useParams();
     const [quiz, setQuiz] = useState(null);
+    const [quizError, setQuizError] = useState("");
     const [respuestas, setRespuestas] = useState({});
     const [enviado, setEnviado] = useState(false);
     const [error, setError] = useState("");
@@ -47,8 +48,17 @@ export const QuizPage = () => {
         }
     }
 
+    const cargarQuiz = () => {
+        setQuizError("");
+        // Antes, un fallo de red dejaba el spinner girando para
+        // siempre: ahora se muestra el error con forma de reintentar.
+        getQuizByLesson(lessonId)
+            .then((data) => setQuiz(data))
+            .catch(() => setQuizError("No se pudo cargar el quiz. Revisa tu conexión e inténtalo de nuevo."));
+    };
+
     useEffect(() => {
-        getQuizByLesson(lessonId).then((data) => setQuiz(data));
+        cargarQuiz();
     }, [lessonId]);
 
     const calcularNota = () => {
@@ -61,17 +71,50 @@ export const QuizPage = () => {
         return correctas;
     };
 
+    if (quizError) {
+        return (
+            <div className="container py-5">
+                <div className="alert alert-danger" role="alert">{quizError}</div>
+                <div className="d-flex flex-wrap gap-2">
+                    <button type="button" className="btn btn-primary rounded-pill px-4" onClick={cargarQuiz}>
+                        Reintentar
+                    </button>
+                    <Link to="/courses" className="btn btn-outline-primary rounded-pill px-4">
+                        Ver las rutas
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+
     if (!quiz) {
         return (
             <div className="container py-5 text-center">
-                <div className="spinner-border text-primary" role="status"></div>
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Cargando el quiz...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (!quiz.questions_data || quiz.questions_data.length === 0) {
+        return (
+            <div className="container py-5 text-center">
+                <h3 className="fw-bold">Este quiz aún no tiene preguntas</h3>
+                <p className="text-secondary">
+                    El equipo está preparando las preguntas de esta evaluación.
+                    Vuelve pronto.
+                </p>
+                <Link to="/courses" className="btn btn-primary rounded-pill px-4">
+                    Ver las rutas
+                </Link>
             </div>
         );
     }
 
     return (
         <div className="container py-4">
-            {error && <div className="alert alert-danger py-2">{error}</div>}
+            {error && <div className="alert alert-danger py-2" role="alert">{error}</div>}
             <div className="card border-0 shadow-sm mb-4">
                 <div className="card-body p-4">
                     <span className="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2 mb-2">
@@ -95,8 +138,11 @@ export const QuizPage = () => {
                         <h5 className="fw-bold mb-3">{pregunta.question_text}</h5>
 
                         {["a", "b", "c"].map((letra) => (
-                            <div
+                            <button
+                                type="button"
                                 key={letra}
+                                disabled={enviado}
+                                aria-pressed={respuestas[index] === letra}
                                 className={`quiz-option mb-2
                                         ${respuestas[index] === letra ? "border-primary bg-primary-subtle" : ""}
                                         ${letra === pregunta.correct_option &&
@@ -108,7 +154,7 @@ export const QuizPage = () => {
                                     {letra.toUpperCase()}
                                 </span>
                                 {pregunta["option_" + letra]}
-                            </div>
+                            </button>
                         )
                         )}
                     </div>

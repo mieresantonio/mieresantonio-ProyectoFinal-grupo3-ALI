@@ -180,9 +180,10 @@ export const Admin = () => {
                 <div className="card-body">
                     {formRutaAbierto && (
                         <div className="border rounded p-3 mb-3 lab-block">
-                            <label className="form-label small fw-bold">Título de la ruta</label>
+                            <label className="form-label small fw-bold" htmlFor="admin-titulo-ruta">Título de la ruta</label>
                             <input
                                 type="text"
+                                id="admin-titulo-ruta"
                                 className="form-control form-control-sm mb-2"
                                 placeholder="Ej. Fundamentos de Blockchain"
                                 value={tituloRuta}
@@ -221,9 +222,10 @@ export const Admin = () => {
                             {formModuloAbierto === ruta.id && (
                                 <div className="border-top mt-3 pt-3">
                                     <div className="mb-2">
-                                        <label className="form-label small fw-bold">Título del módulo</label>
+                                        <label className="form-label small fw-bold" htmlFor="admin-titulo-modulo">Título del módulo</label>
                                         <input
                                             type="text"
+                                            id="admin-titulo-modulo"
                                             className="form-control form-control-sm"
                                             placeholder="Ej. Módulo 1: Introducción"
                                             value={tituloModulo}
@@ -231,8 +233,9 @@ export const Admin = () => {
                                         />
                                     </div>
                                     <div className="mb-2">
-                                        <label className="form-label small fw-bold">Nivel</label>
+                                        <label className="form-label small fw-bold" htmlFor="admin-nivel-modulo">Nivel</label>
                                         <select
+                                            id="admin-nivel-modulo"
                                             className="form-select form-select-sm"
                                             value={nivelModulo}
                                             onChange={(e) => setNivelModulo(e.target.value)}
@@ -255,8 +258,9 @@ export const Admin = () => {
                             {formAbierto === ruta.id && (
                                 <div className="border-top mt-3 pt-3">
                                     <div className="mb-2">
-                                        <label className="form-label small fw-bold">Módulo</label>
+                                        <label className="form-label small fw-bold" htmlFor="admin-modulo-leccion">Módulo</label>
                                         <select
+                                            id="admin-modulo-leccion"
                                             className="form-select form-select-sm"
                                             value={moduloElegido}
                                             onChange={(e) => setModuloElegido(e.target.value)}
@@ -270,8 +274,9 @@ export const Admin = () => {
                                         </select>
                                     </div>
                                     <div className="mb-2">
-                                        <label className="form-label small fw-bold">Título de la lección</label>
+                                        <label className="form-label small fw-bold" htmlFor="admin-titulo-leccion">Título de la lección</label>
                                         <input
+                                            id="admin-titulo-leccion"
                                             type="text"
                                             className="form-control form-control-sm"
                                             placeholder="Ej. Qué es una llave privada"
@@ -280,8 +285,9 @@ export const Admin = () => {
                                         />
                                     </div>
                                     <div className="mb-2">
-                                        <label className="form-label small fw-bold">Contenido</label>
+                                        <label className="form-label small fw-bold" htmlFor="admin-contenido-leccion">Contenido</label>
                                         <textarea
+                                            id="admin-contenido-leccion"
                                             className="form-control form-control-sm"
                                             rows="4"
                                             placeholder="Escribe el contenido de la lección..."
