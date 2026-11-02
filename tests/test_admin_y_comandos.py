@@ -50,3 +50,38 @@ def test_semilla_idempotente_y_conteos(seeded):
             .join(Module, Lesson.module_id == Module.id)
             .filter(Module.learning_path_id.in_(ids))).scalar()
     assert (n_mod, n_les, n_quiz) == (5, 9, 9)
+
+
+def test_semilla_sin_variable_no_reactiva_demo(seeded, monkeypatch):
+    """Sin SEED_DEMO_USERS, la semilla no crea ni reactiva usuarios demo."""
+    app = seeded
+    monkeypatch.delenv("SEED_DEMO_USERS", raising=False)
+    with app.app_context():
+        from api.models import User
+        student = db.session.execute(
+            db.select(User).filter_by(email="student@academy.test")
+        ).scalar_one()
+        student.is_active = False
+        db.session.commit()
+        n_antes = db.session.execute(
+            db.select(db.func.count()).select_from(User)).scalar()
+    try:
+        r = app.test_cli_runner().invoke(args=["insert-test-data"])
+        assert r.exit_code == 0, r.output
+        with app.app_context():
+            student = db.session.execute(
+                db.select(User).filter_by(email="student@academy.test")
+            ).scalar_one()
+            n_despues = db.session.execute(
+                db.select(db.func.count()).select_from(User)).scalar()
+        # Ni reactivado ni duplicado: la cuenta demo queda como estaba.
+        assert student.is_active is False
+        assert n_despues == n_antes
+    finally:
+        # Restaurar el estado compartido de la suite pase lo que pase.
+        with app.app_context():
+            student = db.session.execute(
+                db.select(User).filter_by(email="student@academy.test")
+            ).scalar_one()
+            student.is_active = True
+            db.session.commit()

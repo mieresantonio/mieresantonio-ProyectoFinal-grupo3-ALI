@@ -17,6 +17,10 @@ os.environ["DATABASE_URL"] = f"sqlite:///{_TMP}/test.db"
 os.environ["FLASK_APP_KEY"] = "test-secret-key"
 os.environ.pop("FLASK_DEBUG", None)
 os.environ.pop("ENABLE_ADMIN", None)
+# La suite ES un entorno controlado y varios fixtures inician sesión con
+# las cuentas demo: desde el blindaje de cuentas demo, la semilla solo
+# las crea con SEED_DEMO_USERS=1, así que aquí se activa explícitamente.
+os.environ["SEED_DEMO_USERS"] = "1"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
