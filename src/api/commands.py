@@ -1,3 +1,5 @@
+import os
+
 import click
 from api.models import (
     db,
@@ -54,6 +56,13 @@ def setup_commands(app):
     @app.cli.command("insert-test-data")
     def insert_test_data():
         """Populate the database with a complete, repeatable demo dataset."""
+        # Los usuarios demo usan contraseñas conocidas y publicadas en el
+        # repo: solo deben existir en entornos controlados (local/pruebas).
+        # Por eso solo se crean si SEED_DEMO_USERS=1 está en el entorno;
+        # sin la variable, la semilla puebla el contenido (rutas, módulos,
+        # lecciones y quizzes) sin crear ni reactivar cuentas demo, para
+        # que ningún despliegue público las deje activas por accidente.
+        seed_demo_users = os.environ.get("SEED_DEMO_USERS") == "1"
         users = [
             {
                 "email": "admin@academy.test",
@@ -67,7 +76,7 @@ def setup_commands(app):
                 "password": "Student123!",
                 "role": UserType.student,
             },
-        ]
+        ] if seed_demo_users else []
 
         paths = [
             {
@@ -722,7 +731,8 @@ function retirar(uint256 cantidad) public {
                 user_by_email[user_data["email"]] = user
 
             db.session.flush()
-            student = user_by_email["student@academy.test"]
+            # Sin usuarios demo no hay estudiante al que sembrar progreso.
+            student = user_by_email.get("student@academy.test")
 
             for path_data in paths:
                 path = db.session.execute(
@@ -793,20 +803,21 @@ function retirar(uint256 cantidad) public {
                         else:
                             quiz.questions_data = lesson_data["questions"]
 
-                        progress = db.session.execute(
-                            db.select(UserProgress).filter_by(
-                                user_id=student.id, lesson_id=lesson.id
-                            )
-                        ).scalar_one_or_none()
-                        if progress is None:
-                            db.session.add(
-                                UserProgress(
-                                    user=student,
-                                    lesson=lesson,
-                                    is_completed=False,
+                        if student is not None:
+                            progress = db.session.execute(
+                                db.select(UserProgress).filter_by(
+                                    user_id=student.id, lesson_id=lesson.id
                                 )
-                            )
-                            created_progress += 1
+                            ).scalar_one_or_none()
+                            if progress is None:
+                                db.session.add(
+                                    UserProgress(
+                                        user=student,
+                                        lesson=lesson,
+                                        is_completed=False,
+                                    )
+                                )
+                                created_progress += 1
 
             db.session.commit()
         except Exception:
@@ -819,5 +830,11 @@ function retirar(uint256 cantidad) public {
             f"{created_modules} módulos, {created_lessons} lecciones, "
             f"{created_quizzes} quizzes y {created_progress} progresos creados."
         )
-        print("Usuario demo: student@academy.test / Student123!")
-        print("Administrador demo: admin@academy.test / Admin123!")
+        if seed_demo_users:
+            print("Usuario demo: student@academy.test / Student123!")
+            print("Administrador demo: admin@academy.test / Admin123!")
+        else:
+            print(
+                "Usuarios demo omitidos: define SEED_DEMO_USERS=1 para "
+                "crearlos en entornos controlados (local/pruebas)."
+            )
