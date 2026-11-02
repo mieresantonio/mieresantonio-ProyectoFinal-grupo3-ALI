@@ -107,6 +107,9 @@ export const Navbar = () => {
 					<Link to="/laboratorio" className="btn btn-outline-primary rounded-pill">
 						Laboratorio
 					</Link>
+					<Link to="/tutor" className="btn btn-outline-primary rounded-pill">
+						Tutor
+					</Link>
 
 					{store.token ? (
 						<>
@@ -138,6 +141,9 @@ export const Navbar = () => {
 					</Link>
 					<Link to="/laboratorio" className="btn btn-outline-primary btn-sm rounded-pill flex-shrink-0">
 						Laboratorio
+					</Link>
+					<Link to="/tutor" className="btn btn-outline-primary btn-sm rounded-pill flex-shrink-0">
+						Tutor
 					</Link>
 
 					{store.token ? (

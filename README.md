@@ -11,8 +11,9 @@ Nació como proyecto final del bootcamp Full Stack de **4Geeks Academy (Grupo 3)
 - **Quizzes con nota real** — cada lección se evalúa; se aprueba con 70% o más y la nota queda registrada.
 - **Progreso persistente** — panel del estudiante con % de avance, quizzes aprobados y siguiente lección.
 - **Contenido inicial**:
-  - *Fundamentos de Blockchain* — conceptos esenciales, criptografía y wallets, consenso (Proof of Work).
-  - *Desarrollo de Smart Contracts* — estructura de Solidity y primer contrato.
+  - *Fundamentos de Blockchain* — conceptos esenciales, criptografía y wallets, transacciones paso a paso y consenso (Proof of Work y Proof of Stake). Lecciones completas en Markdown, con ejemplos e idea clave final.
+  - *Desarrollo de Smart Contracts* — estructura de Solidity, funciones y visibilidad, eventos y errores, y seguridad esencial (patrón checks-effects-interactions).
+- **Tutor integrado** — en `/tutor`: responde preguntas usando solo el contenido de las lecciones, con cita de la lección de origen (ver más abajo).
 - **Ticker de precios** cripto en vivo en la portada.
 - **Panel de administración** para gestionar usuarios y contenido.
 
@@ -45,6 +46,19 @@ aprobados (≥70%), puedes reclamar un certificado con código único
 - **Certificado imprimible** en `/certificado/:pathId`.
 - **Verificación pública** en `/verificar/:code`: cualquiera puede
   comprobar que un código corresponde a un certificado real.
+
+### Tutor de lecciones — `/tutor`
+Un tutor dentro de la plataforma que responde preguntas del estudiante
+usando **únicamente el contenido de las lecciones de Blockali**:
+
+- **Endpoint** `POST /api/tutor`: búsqueda TF-IDF (solo librería
+  estándar de Python) sobre los fragmentos de las lecciones; sin
+  servicios externos, sin claves de API y sin modelos de lenguaje.
+- **Respuesta extractiva con fuentes**: compone la respuesta con los
+  fragmentos más relevantes y cita ruta, módulo y lección, con enlace
+  directo a cada lección.
+- **Honesto por diseño**: si el tema no está en las lecciones, lo dice
+  y sugiere la lección más cercana en vez de inventar una respuesta.
 
 ## Stack
 
