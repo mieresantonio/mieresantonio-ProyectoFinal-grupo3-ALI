@@ -4,6 +4,10 @@
 
 Nació como proyecto final del bootcamp Full Stack de **4Geeks Academy (Grupo 3)** y sigue evolucionando como producto.
 
+## App en vivo
+
+**[BC123.pythonanywhere.com](https://BC123.pythonanywhere.com)** — Contenido actual: 2 rutas, 5 módulos, 9 lecciones con sus 9 quizzes, y el tutor integrado en [`/tutor`](https://BC123.pythonanywhere.com/tutor).
+
 ## Qué ofrece
 
 - **Cuentas completas** — registro con verificación de correo, inicio de sesión con JWT, recuperación de contraseña y roles (estudiante / administrador).
