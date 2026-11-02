@@ -94,7 +94,7 @@ pipenv run start       # API Flask en :3001
 npm run dev            # Frontend Vite en :3000 (proxy /api → :3001)
 ```
 
-> **Cuentas demo (solo entornos controlados):** `insert-test-data` siempre crea el contenido (rutas, módulos, lecciones y quizzes), pero los usuarios demo (`admin@academy.test` y `student@academy.test`, de contraseñas conocidas) solo se crean si el entorno trae `SEED_DEMO_USERS=1`. En despliegues públicos NO pongas esa variable: la semilla poblará el contenido sin dejar cuentas demo activas.
+> **Cuentas demo:** `insert-test-data` siempre crea el contenido (rutas, módulos, lecciones y quizzes) y la cuenta de **estudiante demo** (`student@academy.test` / `Student123!`, rol estudiante y sin privilegios): es el ingreso público de prueba, para entrar a ver la plataforma sin registrarse. La cuenta de **administrador demo** (`admin@academy.test`, de contraseña conocida) solo se crea si el entorno trae `SEED_DEMO_USERS=1`: úsala únicamente en entornos controlados (local/pruebas) y no pongas nunca esa variable en un despliegue público.
 
 ## Estructura
 

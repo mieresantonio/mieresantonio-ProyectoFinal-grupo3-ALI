@@ -56,27 +56,30 @@ def setup_commands(app):
     @app.cli.command("insert-test-data")
     def insert_test_data():
         """Populate the database with a complete, repeatable demo dataset."""
-        # Los usuarios demo usan contraseñas conocidas y publicadas en el
-        # repo: solo deben existir en entornos controlados (local/pruebas).
-        # Por eso solo se crean si SEED_DEMO_USERS=1 está en el entorno;
-        # sin la variable, la semilla puebla el contenido (rutas, módulos,
-        # lecciones y quizzes) sin crear ni reactivar cuentas demo, para
-        # que ningún despliegue público las deje activas por accidente.
-        seed_demo_users = os.environ.get("SEED_DEMO_USERS") == "1"
-        users = [
-            {
-                "email": "admin@academy.test",
-                "username": "Admin Academy",
-                "password": "Admin123!",
-                "role": UserType.admin,
-            },
-            {
-                "email": "student@academy.test",
-                "username": "Demo Student",
-                "password": "Student123!",
-                "role": UserType.student,
-            },
-        ] if seed_demo_users else []
+        # Regla de cuentas demo (aclarada por Antonio, 2-nov-2026):
+        # - El ESTUDIANTE demo se siembra siempre: es el ingreso público
+        #   de prueba (rol estudiante, sin privilegios) para entrar a ver
+        #   la plataforma sin registrarse.
+        # - El ADMIN demo usa una contraseña conocida y publicada en el
+        #   repo: NUNCA debe estar activo en un despliegue público, así
+        #   que solo se crea si SEED_DEMO_USERS=1 está en el entorno
+        #   (entornos controlados: local/pruebas).
+        # Las cuentas ya existentes nunca se modifican (get-or-create),
+        # así que la semilla tampoco reactiva un admin demo desactivado.
+        seed_admin_demo = os.environ.get("SEED_DEMO_USERS") == "1"
+        student_demo = {
+            "email": "student@academy.test",
+            "username": "Demo Student",
+            "password": "Student123!",
+            "role": UserType.student,
+        }
+        admin_demo = {
+            "email": "admin@academy.test",
+            "username": "Admin Academy",
+            "password": "Admin123!",
+            "role": UserType.admin,
+        }
+        users = [admin_demo, student_demo] if seed_admin_demo else [student_demo]
 
         paths = [
             {
@@ -731,7 +734,7 @@ function retirar(uint256 cantidad) public {
                 user_by_email[user_data["email"]] = user
 
             db.session.flush()
-            # Sin usuarios demo no hay estudiante al que sembrar progreso.
+            # El progreso sembrado es el del estudiante demo (siempre presente).
             student = user_by_email.get("student@academy.test")
 
             for path_data in paths:
@@ -830,11 +833,11 @@ function retirar(uint256 cantidad) public {
             f"{created_modules} módulos, {created_lessons} lecciones, "
             f"{created_quizzes} quizzes y {created_progress} progresos creados."
         )
-        if seed_demo_users:
-            print("Usuario demo: student@academy.test / Student123!")
+        print("Usuario demo: student@academy.test / Student123!")
+        if seed_admin_demo:
             print("Administrador demo: admin@academy.test / Admin123!")
         else:
             print(
-                "Usuarios demo omitidos: define SEED_DEMO_USERS=1 para "
-                "crearlos en entornos controlados (local/pruebas)."
+                "Administrador demo omitido: define SEED_DEMO_USERS=1 para "
+                "crearlo en entornos controlados (local/pruebas)."
             )
