@@ -1,6 +1,9 @@
 import hashlib
+import math
 import os
 import re
+import unicodedata
+from collections import Counter
 from datetime import timedelta, datetime
 
 from flask import request, jsonify, Blueprint
@@ -713,4 +716,204 @@ def verify_certificate(code):
         "holder": cert.user.username or cert.user.email,
         "path": cert.learning_path.title,
         "issued_at": cert.issued_at.isoformat() if cert.issued_at else None,
+    }), 200
+
+
+# ============================================================================
+# TUTOR DE BLOCKALI — responde SOLO desde el contenido de las lecciones
+# ============================================================================
+# Sin servicios externos, sin claves y sin modelos de lenguaje: la
+# búsqueda es TF-IDF (solo librería estándar) sobre los fragmentos del
+# contenido Markdown de las lecciones guardadas en la base de datos.
+# La respuesta es EXTRACTIVA: se compone con los fragmentos más
+# relevantes, citando siempre la lección de origen. Si ningún fragmento
+# supera el umbral, el tutor lo dice honestamente y sugiere la lección
+# más cercana en vez de inventar una respuesta.
+
+_TUTOR_STOPWORDS = {
+    "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del",
+    "en", "y", "o", "a", "con", "por", "para", "que", "es", "se", "su",
+    "al", "lo", "como", "mas", "más", "pero", "sus", "le", "ya", "este",
+    "esta", "esto", "si", "sí", "no", "qué", "cuál", "cuáles", "cómo",
+    "cuándo", "dónde", "quién", "porque", "cuando", "puede", "puedo",
+    "quiero", "hace", "hacer", "tiene", "tienen", "son", "sobre",
+    "entre", "muy", "sin", "también", "me", "te", "mi", "tu", "nos",
+    "hay", "ser", "estar", "está", "están", "eso", "esa", "ese",
+    # Verbos típicos de la pregunta, sin contenido temático propio:
+    "sirve", "sirven", "funciona", "funcionan", "significa",
+    "quiero", "saber", "explicame", "cuentame", "dime",
+}
+
+# Umbral mínimo de similitud coseno (TF-IDF) para afirmar que las
+# lecciones cubren la pregunta. Ajustado con preguntas reales de prueba.
+_TUTOR_UMBRAL = 0.08
+
+
+def _tutor_tokens(texto):
+    """Normaliza (minúsculas, sin acentos) y tokeniza para el TF-IDF."""
+    texto = unicodedata.normalize("NFD", (texto or "").lower())
+    texto = "".join(c for c in texto if unicodedata.category(c) != "Mn")
+    return [
+        t for t in re.findall(r"[a-z0-9]+", texto)
+        if len(t) > 2 and t not in _TUTOR_STOPWORDS
+    ]
+
+
+def _tutor_limpiar(fragmento):
+    """Quita la sintaxis Markdown de un fragmento para mostrarlo en texto."""
+    texto = re.sub(r"```[a-z]*", " ", fragmento)
+    texto = re.sub(r"[#>*`]", " ", texto)
+    texto = re.sub(r"^\s*[-•]\s+", "", texto, flags=re.MULTILINE)
+    texto = re.sub(r"^\s*\d+\.\s+", "", texto, flags=re.MULTILINE)
+    texto = re.sub(r"\s+", " ", texto).strip()
+    return re.sub(r"\s+([:;,.])", r"\1", texto)
+
+
+def _tutor_fragmentos(contenido):
+    """Divide el contenido de una lección en fragmentos comparables.
+
+    Corta por líneas en blanco y fusiona los trozos muy cortos (títulos
+    sueltos) con el fragmento siguiente, para que cada fragmento tenga
+    suficiente texto para puntuar y para citar.
+    """
+    bloques = [b.strip() for b in re.split(r"\n\s*\n", contenido or "")]
+    fragmentos = []
+    pendiente = ""
+    for bloque in bloques:
+        limpio = _tutor_limpiar(bloque)
+        if not limpio:
+            continue
+        if pendiente:
+            limpio = pendiente + " " + limpio
+            pendiente = ""
+        if len(limpio) < 60:
+            pendiente = limpio
+            continue
+        fragmentos.append(limpio)
+    if pendiente:
+        if fragmentos:
+            fragmentos[-1] = fragmentos[-1] + " " + pendiente
+        else:
+            fragmentos.append(pendiente)
+    return fragmentos
+
+
+def _tutor_indice():
+    """Construye el índice TF-IDF de fragmentos de todas las lecciones."""
+    lessons = db.session.execute(
+        db.select(Lesson).order_by(Lesson.id)).scalars().all()
+    docs = []
+    for lesson in lessons:
+        contexto = (
+            f"{lesson.module.learning_path.title} "
+            f"{lesson.module.title} {lesson.title}"
+        )
+        tokens_ctx = _tutor_tokens(contexto)
+        for fragmento in _tutor_fragmentos(lesson.content):
+            docs.append({
+                "lesson": lesson,
+                "texto": fragmento,
+                # Los tokens del título cuentan doble: si la pregunta
+                # nombra el tema de la lección, sus fragmentos pesan más.
+                "tokens": _tutor_tokens(fragmento) + tokens_ctx,
+            })
+    df = Counter()
+    for doc in docs:
+        df.update(set(doc["tokens"]))
+    n = max(len(docs), 1)
+    idf = {t: math.log((1 + n) / (1 + c)) + 1.0 for t, c in df.items()}
+    for doc in docs:
+        tf = Counter(doc["tokens"])
+        # TF sublineal (1 + log tf): repetir una palabra en un fragmento
+        # suma, pero con rendimiento decreciente; así un fragmento que
+        # repite un término genérico no tapa al que trata el tema.
+        doc["vector"] = {
+            t: (1.0 + math.log(c)) * idf[t] for t, c in tf.items()}
+        doc["norma"] = math.sqrt(sum(v * v for v in doc["vector"].values()))
+    return docs, idf
+
+
+def _tutor_coseno(tokens_pregunta, idf, doc):
+    if not tokens_pregunta or not doc["norma"]:
+        return 0.0
+    tf = Counter(tokens_pregunta)
+    qvec = {t: (1.0 + math.log(c)) * idf.get(t, 0.0)
+            for t, c in tf.items()}
+    qnorm = math.sqrt(sum(v * v for v in qvec.values()))
+    if not qnorm:
+        return 0.0
+    punto = sum(v * doc["vector"].get(t, 0.0) for t, v in qvec.items())
+    return punto / (qnorm * doc["norma"])
+
+
+def _tutor_fuente(doc):
+    lesson = doc["lesson"]
+    return {
+        "lesson_id": lesson.id,
+        "lesson_title": lesson.title,
+        "module_title": lesson.module.title,
+        "path_id": lesson.module.learning_path_id,
+        "path_title": lesson.module.learning_path.title,
+        "excerpt": doc["texto"][:400],
+        "score": round(doc["score"], 3),
+    }
+
+
+@api.route('/tutor', methods=['POST'])
+def tutor_pregunta():
+    body = request.get_json(silent=True) or {}
+    pregunta = (body.get("question") or "").strip()
+    if not pregunta:
+        return jsonify({"error": "Escribe una pregunta para el tutor"}), 400
+    if len(pregunta) > 500:
+        return jsonify({"error": "La pregunta es demasiado larga"}), 400
+
+    tokens = _tutor_tokens(pregunta)
+    docs, idf = _tutor_indice()
+    if not docs:
+        return jsonify({
+            "found": False,
+            "answer": "Todavía no hay lecciones cargadas en la plataforma.",
+            "sources": [],
+        }), 200
+
+    for doc in docs:
+        doc["score"] = _tutor_coseno(tokens, idf, doc)
+    docs.sort(key=lambda d: d["score"], reverse=True)
+    mejor = docs[0]
+
+    if mejor["score"] < _TUTOR_UMBRAL:
+        # Honestidad ante todo: no está en las lecciones. Se sugiere la
+        # lección con mejor puntuación como punto de partida.
+        sugerencia = _tutor_fuente(mejor)
+        return jsonify({
+            "found": False,
+            "answer": (
+                "Eso no aparece en las lecciones de Blockali, así que no "
+                "quiero inventarte una respuesta. La lección más cercana "
+                f"a tu pregunta es «{sugerencia['lesson_title']}» "
+                f"({sugerencia['path_title']} · {sugerencia['module_title']}); "
+                "puede ser un buen punto de partida."
+            ),
+            "sources": [sugerencia],
+        }), 200
+
+    # Hasta 3 fragmentos, de lecciones distintas si es posible, que
+    # superen el 60% de la mejor puntuación.
+    corte = max(_TUTOR_UMBRAL, mejor["score"] * 0.6)
+    elegidos = []
+    lecciones_vistas = set()
+    for doc in docs:
+        if doc["score"] < corte or len(elegidos) >= 3:
+            break
+        if doc["lesson"].id in lecciones_vistas and len(docs) > 3:
+            continue
+        elegidos.append(doc)
+        lecciones_vistas.add(doc["lesson"].id)
+
+    respuesta = " ".join(d["texto"] for d in elegidos)
+    return jsonify({
+        "found": True,
+        "answer": respuesta,
+        "sources": [_tutor_fuente(d) for d in elegidos],
     }), 200

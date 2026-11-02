@@ -17,6 +17,7 @@ import CoursePage from "./pages/CoursePage";
 import LessonPage from "./pages/LessonPage";
 import { QuizPage } from "./pages/QuizPage";
 import { Lab } from "./pages/Lab";
+import { Tutor } from "./pages/Tutor";
 import { CertificatePage } from "./pages/CertificatePage";
 import { VerifyPage } from "./pages/VerifyPage";
 import { VerifyEmail } from "./pages/VerifyEmail";
@@ -52,6 +53,7 @@ export const router = createBrowserRouter(
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/courses" element={<Courses />} />
       <Route path="/laboratorio" element={<Lab />} />
+      <Route path="/tutor" element={<Tutor />} />
       <Route path="/certificado/:pathId" element={<CertificatePage />} />
       <Route path="/verificar/:code" element={<VerifyPage />} />
       <Route path="/admin" element={<Admin />} />
