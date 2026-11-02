@@ -28,10 +28,23 @@ def setup_commands(app):
     def insert_test_users(count):
         print("Creating test users")
         for x in range(1, int(count) + 1):
-            user = User()
-            user.email = "test_user" + str(x) + "@test.com"
-            user.password = "123456"
-            user.is_active = True
+            email = "test_user" + str(x) + "@test.com"
+            user = db.session.execute(
+                db.select(User).filter_by(email=email)
+            ).scalar_one_or_none()
+            if user is not None:
+                print("User: ", email, " already exists, skipped.")
+                continue
+            # Antes esto asignaba `user.password` (atributo que no existe
+            # en el modelo) y nunca fijaba rol ni hash: el commit reventaba
+            # con IntegrityError porque password_hash es NOT NULL.
+            user = User(
+                email=email,
+                username="Test User " + str(x),
+                is_active=True,
+                role=UserType.student,
+            )
+            user.set_password("123456")
             db.session.add(user)
             db.session.commit()
             print("User: ", user.email, " created.")

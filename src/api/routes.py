@@ -6,8 +6,9 @@ import unicodedata
 from collections import Counter
 from datetime import timedelta, datetime
 
-from flask import request, jsonify, Blueprint
+from flask import request, jsonify, Blueprint, current_app
 from flask_cors import CORS
+from sqlalchemy.orm import selectinload
 from flask_jwt_extended import (
     jwt_required,
     get_jwt_identity,
@@ -17,7 +18,6 @@ from flask_jwt_extended import (
 from flask_mail import Message
 
 from api.models import db, User, UserType, LearningPath, Module, Lesson, Quiz, UserProgress, Certificate
-from api.utils import APIException
 from api.mail import mail
 
 api = Blueprint('api', __name__)
@@ -26,20 +26,58 @@ CORS(api)
 EMAIL_REGEX = r'^[\w\.-]+@[\w\.-]+\.\w+$'
 
 
+def _texto(data, key):
+    """Campo de texto seguro: '' si falta, es None o no es una cadena.
+
+    Sin esto, un JSON como {"username": null} reventaba con AttributeError
+    (500 en HTML) al hacer .strip() sobre None.
+    """
+    value = data.get(key)
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _es_score_valido(value):
+    """Un quiz_score válido es un número entre 0 y 100 (bool no cuenta)."""
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and 0 <= value <= 100
+    )
+
+
+def _require_admin():
+    """(usuario, None) si el JWT es de un admin; (None, respuesta 403) si no.
+
+    La página Admin del frontend ya oculta la creación de contenido a los
+    estudiantes, pero esa barrera era solo visual: cualquier estudiante con
+    token podía crear rutas/módulos/lecciones por API. Esto lo cierra en el
+    servidor, que es donde cuenta.
+    """
+    user = db.session.get(User, int(get_jwt_identity()))
+    if not user or user.role != UserType.admin:
+        return None, (jsonify({
+            "error": "No tienes permiso para acceder a este recurso"}), 403)
+    return user, None
+
+
 # ============================================================================
 # AUTENTICACIÓN (registro + verificación de correo)
 # ============================================================================
 
 @api.route('/signup', methods=['POST'])
 def handle_signup():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Cuerpo de la petición inválido"}), 400
 
-    username = data.get('username', '').strip()
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    username = _texto(data, 'username')
+    email = _texto(data, 'email').lower()
+    password = data.get('password')
+    if not isinstance(password, str):
+        password = ''
 
+    if len(email) > 120 or len(username) > 80:
+        return jsonify({"error": "El correo o el nombre de usuario son demasiado largos"}), 400
     if not email or not re.match(EMAIL_REGEX, email):
         return jsonify({"error": "Debes proporcionar un correo electrónico válido"}), 400
     if not password or len(password) < 6:
@@ -100,7 +138,8 @@ def handle_signup():
         )
         mail.send(msg)
     except Exception as e:
-        print("Error enviando correo de verificación:", str(e))
+        current_app.logger.error(
+            "Error enviando correo de verificación: %s", e)
         return jsonify({
             "message": "Usuario registrado, pero hubo un error al enviar el correo.",
             "error": str(e)
@@ -111,12 +150,14 @@ def handle_signup():
 
 @api.route('/login', methods=['POST'])
 def handle_login():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     if not data:
         return jsonify({"error": "Cuerpo de la petición inválido"}), 400
 
-    email = data.get('email', '').strip().lower()
-    password = data.get('password', '')
+    email = _texto(data, 'email').lower()
+    password = data.get('password')
+    if not isinstance(password, str):
+        password = ''
 
     user = db.session.execute(
         db.select(User).filter_by(email=email)
@@ -134,7 +175,7 @@ def handle_login():
 
 @api.route('/verify-email', methods=['POST'])
 def handle_verify_email():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     token = data.get('token') if data else None
     if not token:
         return jsonify({"error": "No se proporcionó ningún token de verificación."}), 400
@@ -164,8 +205,8 @@ def handle_verify_email():
 
 @api.route('/forgot-password', methods=['POST'])
 def handle_forgot_password():
-    data = request.get_json()
-    email = data.get('email', '').strip().lower() if data else ''
+    data = request.get_json(silent=True)
+    email = _texto(data, 'email').lower() if data else ''
 
     if not email:
         return jsonify({"error": "Debes proporcionar un correo electrónico."}), 400
@@ -218,14 +259,15 @@ def handle_forgot_password():
         )
         mail.send(msg)
     except Exception as e:
-        print("Error enviando correo de recuperación:", str(e))
+        current_app.logger.error(
+            "Error enviando correo de recuperación: %s", e)
 
     return jsonify({"message": generic_message}), 200
 
 
 @api.route('/reset-password', methods=['POST'])
 def handle_reset_password():
-    data = request.get_json()
+    data = request.get_json(silent=True)
     token = data.get('token') if data else None
     new_password = data.get('password') if data else None
 
@@ -288,6 +330,13 @@ def get_user(user_id):
     user = db.session.get(User, user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
+    # Solo el propio usuario o un admin: antes, cualquier cuenta con token
+    # podía leer el correo y el rol de cualquier otro usuario por su id.
+    current_user = db.session.get(User, int(get_jwt_identity()))
+    if not current_user or (
+        current_user.id != user_id and current_user.role != UserType.admin
+    ):
+        return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
     return jsonify(user.serialize()), 200
 
 # ---- LEARNING PATHS ----
@@ -295,7 +344,11 @@ def get_user(user_id):
 
 @api.route('/learning-paths', methods=['GET'])
 def get_learning_paths():
-    paths = db.session.execute(db.select(LearningPath)).scalars().all()
+    # selectinload: sin esto, len(p.modules) lanzaba una consulta por ruta
+    # (patrón N+1). La respuesta es idéntica, solo cambia cómo se carga.
+    paths = db.session.execute(
+        db.select(LearningPath).options(selectinload(LearningPath.modules))
+    ).scalars().all()
     return jsonify([{
         "id": p.id,
         "title": p.title,
@@ -309,7 +362,12 @@ def get_learning_paths():
 
 @api.route('/learning-paths/<int:path_id>', methods=['GET'])
 def get_learning_path(path_id):
-    path = db.session.get(LearningPath, path_id)
+    path = db.session.execute(
+        db.select(LearningPath)
+        .options(selectinload(LearningPath.modules)
+                 .selectinload(Module.lessons))
+        .filter_by(id=path_id)
+    ).scalar_one_or_none()
     if not path:
         return jsonify({"error": "Learning path not found"}), 404
     return jsonify({
@@ -326,7 +384,12 @@ def get_learning_path(path_id):
 @api.route('/learning-paths', methods=['POST'])
 @jwt_required()
 def create_learning_path():
-    body = request.json
+    _, error = _require_admin()
+    if error:
+        return error
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not _texto(body, "title"):
+        return jsonify({"error": "Debes proporcionar un título válido"}), 400
     path = LearningPath(title=body["title"], image_url=body.get("image_url"), description=body.get(
         "description"), time_required=body.get("time_required"), level=body.get("level"))
     db.session.add(path)
@@ -358,7 +421,15 @@ def get_module(module_id):
 @api.route('/modules', methods=['POST'])
 @jwt_required()
 def create_module():
-    body = request.json
+    _, error = _require_admin()
+    if error:
+        return error
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not _texto(body, "title") \
+            or body.get("learning_path_id") is None:
+        return jsonify({"error": "Debes proporcionar título y learning_path_id"}), 400
+    if not db.session.get(LearningPath, body["learning_path_id"]):
+        return jsonify({"error": "Learning path not found"}), 404
     module = Module(title=body["title"], level=body.get(
         "level"), learning_path_id=body["learning_path_id"])
     db.session.add(module)
@@ -391,7 +462,16 @@ def get_lesson(lesson_id):
 @api.route('/lessons', methods=['POST'])
 @jwt_required()
 def create_lesson():
-    body = request.json
+    _, error = _require_admin()
+    if error:
+        return error
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or not _texto(body, "title") \
+            or "content" not in body or body.get("module_id") is None \
+            or body.get("order_number") is None:
+        return jsonify({"error": "Debes proporcionar título, contenido, module_id y order_number"}), 400
+    if not db.session.get(Module, body["module_id"]):
+        return jsonify({"error": "Module not found"}), 404
     lesson = Lesson(
         title=body["title"],
         content=body["content"],
@@ -407,8 +487,10 @@ def create_lesson():
 
 @api.route('/quizzes/<int:lesson_id>', methods=['GET'])
 def get_quiz(lesson_id):
+    # .first() en vez de .scalar(): si alguna vez hubiera dos quizzes para
+    # una lección, .scalar() lanzaba MultipleResultsFound (500).
     quiz = db.session.execute(
-        db.select(Quiz).filter_by(lesson_id=lesson_id)).scalar()
+        db.select(Quiz).filter_by(lesson_id=lesson_id)).scalars().first()
     if not quiz:
         return jsonify({"error": "Quiz not found"}), 404
     return jsonify({"id": quiz.id, "questions": quiz.questions_data}), 200
@@ -417,7 +499,15 @@ def get_quiz(lesson_id):
 @api.route('/quizzes', methods=['POST'])
 @jwt_required()
 def create_quiz():
-    body = request.json
+    _, error = _require_admin()
+    if error:
+        return error
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict) or body.get("lesson_id") is None \
+            or "questions_data" not in body:
+        return jsonify({"error": "Debes proporcionar lesson_id y questions_data"}), 400
+    if not db.session.get(Lesson, body["lesson_id"]):
+        return jsonify({"error": "Lesson not found"}), 404
     quiz = Quiz(lesson_id=body["lesson_id"],
                 questions_data=body["questions_data"])
     db.session.add(quiz)
@@ -436,7 +526,8 @@ def get_user_progress(user_id):
         return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
 
     progress = db.session.execute(
-        db.select(UserProgress).filter_by(user_id=user_id)).scalars().all()
+        db.select(UserProgress).filter_by(user_id=user_id)
+        .options(selectinload(UserProgress.lesson))).scalars().all()
 
     if not progress:
         return jsonify([]), 200
@@ -466,18 +557,35 @@ def get_lesson_progress(user_id, lesson_id):
 @jwt_required()
 def create_initial_progress():
     current_user_id = int(get_jwt_identity())
-    body = request.get_json()
+    body = request.get_json(silent=True)
 
     if not isinstance(body, list):
         return jsonify({"error": "Se esperaba una lista de objetos JSON"}), 400
 
+    if any(not isinstance(item, dict) or "user_id" not in item
+           or "lesson_id" not in item for item in body):
+        return jsonify({"error": "Cada elemento debe incluir user_id y lesson_id"}), 400
+
     if any(item.get("user_id") != current_user_id for item in body):
         return jsonify({"error": "No tienes permiso para crear progreso de otro usuario"}), 403
+
+    if any(item.get("quiz_score") is not None
+           and not _es_score_valido(item["quiz_score"]) for item in body):
+        return jsonify({"error": "quiz_score debe ser un número entre 0 y 100"}), 400
+
+    # Sin duplicados: repetir esta inicialización creaba una fila nueva por
+    # lección en cada llamada, y la XP de la gamificación sumaba doble.
+    existing = {p.lesson_id for p in db.session.execute(
+        db.select(UserProgress).filter_by(user_id=current_user_id)
+    ).scalars().all()}
 
     initial_progress = []
 
     try:
         for item in body:
+            if item["lesson_id"] in existing:
+                continue
+            existing.add(item["lesson_id"])
             progress = UserProgress(
                 user_id=item["user_id"],
                 lesson_id=item["lesson_id"],
@@ -503,6 +611,13 @@ def update_progress(user_id, lesson_id):
         return jsonify({"error": "No tienes permiso para modificar este recurso"}), 403
 
     body = request.get_json(silent=True) or {}
+    if not isinstance(body, dict):
+        return jsonify({"error": "Cuerpo de la petición inválido"}), 400
+    # Sin esta validación se aceptaban notas como 99999, y la XP de la
+    # gamificación (que suma quiz_score tal cual) se inflaba sin límite.
+    if body.get("quiz_score") is not None \
+            and not _es_score_valido(body["quiz_score"]):
+        return jsonify({"error": "quiz_score debe ser un número entre 0 y 100"}), 400
     progress = db.session.execute(db.select(UserProgress).filter_by(
         user_id=user_id, lesson_id=lesson_id)).scalars().one_or_none()
 
@@ -654,6 +769,8 @@ def _resumen_ruta(user_id, path):
 @jwt_required()
 def claim_certificate():
     user = db.session.get(User, int(get_jwt_identity()))
+    if not user:
+        return jsonify({"error": "Usuario no encontrado"}), 404
     body = request.get_json(silent=True) or {}
     path = db.session.get(LearningPath, body.get("path_id"))
     if not path:
