@@ -71,7 +71,7 @@ usando **únicamente el contenido de las lecciones de Blockali**:
 | Frontend | React 18 + Vite, React Router 6, Bootstrap 5 (sistema de diseño propio en tema oscuro) |
 | Backend | Flask, SQLAlchemy 2, Flask-JWT-Extended, Flask-Mail, Alembic |
 | Base de datos | PostgreSQL (SQLite en desarrollo) |
-| Despliegue | Render (`render.yaml` + `render_build.sh`) |
+| Despliegue | PythonAnywhere (producción) · `render.yaml` disponible como alternativa |
 
 ## Ejecutar en local
 
@@ -116,6 +116,17 @@ docs/           Documentación auxiliar
 - Contraseñas con hash (Werkzeug), nunca en texto plano.
 - Endpoints de progreso y administración protegidos con JWT y verificación de dueño/rol.
 - Verificación de correo antes de activar la cuenta.
+
+## Mi aporte
+
+Blockali nació como el proyecto final grupal del Grupo 3 sobre la plantilla react-flask de 4Geeks Academy. Además de mi parte en la construcción de la base junto al grupo, lideré su evolución posterior hasta convertirla en un producto en producción:
+
+- **Contenido y tutor integrado**: lecciones completas en Markdown con sus quizzes, y el tutor que responde solo desde el contenido de las lecciones, citando la fuente.
+- **Revisión de seguridad del backend**: administración protegida, permisos por dueño y rol, y cuentas demo con acceso controlado en producción.
+- **Gamificación y certificados verificables**: XP, niveles, rachas y certificados con código único y verificación pública.
+- **Despliegue y mantenimiento**: puesta en producción en PythonAnywhere y evolución continua.
+
+Soy el autor con más commits del repositorio (44 de 89).
 
 ## Créditos
 
