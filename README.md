@@ -128,6 +128,8 @@ Blockali nació como el proyecto final grupal del Grupo 3 sobre la plantilla rea
 
 Soy el autor con más commits del repositorio (44 de 89).
 
+La evolución posterior de Blockali se desarrolló con apoyo de herramientas de IA como par de programación, bajo mi dirección y revisión: cada cambio de arquitectura, seguridad y despliegue fue verificado antes de publicarse.
+
 ## Créditos
 
 Proyecto final de 4Geeks Academy — Grupo 3 (ALI). Construido sobre la plantilla oficial react-flask de 4Geeks, muy modificada.
