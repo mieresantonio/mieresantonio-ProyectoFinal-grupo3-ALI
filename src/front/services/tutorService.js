@@ -8,7 +8,7 @@ export const askTutor = async (question) => {
     const resp = await fetch(`${API}/api/tutor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ question }),
+        body: JSON.stringify({ question })
     });
     const data = await resp.json();
     if (!resp.ok) {

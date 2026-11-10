@@ -6,48 +6,36 @@ export const initialStore = () => {
     token: localStorage.getItem("token") || null,
     user: JSON.parse(localStorage.getItem("user")) || null,
     modules: [],
-    learningPaths: [],
+    learningPaths: []
   };
 };
 
 export default function storeReducer(store, action = {}) {
   switch (action.type) {
-    // Se deja el set_hello por si la plantilla lo usa de prueba
-    case "set_hello":
-      return {
-        ...store,
-        message: action.payload,
-      };
-    // Guardar los módulos cuando vengan del backend
-    case "set_modules":
-      return {
-        ...store,
-        modules: action.payload,
-      };
     // Guarda las rutas de aprendizaje cuando vengan del backend
     case "set_learning_paths":
       return {
         ...store,
-        learningPaths: action.payload,
+        learningPaths: action.payload
       };
     // Guarda el token al iniciar sesión
     case "set_token":
       return {
         ...store,
-        token: action.payload,
+        token: action.payload
       };
     // Guarda los datos del usuario logueado
     case "set_user":
       return {
         ...store,
-        user: action.payload,
+        user: action.payload
       };
     // Limpia los datos al cerrar sesión
     case "logout":
       return {
         ...store,
         token: null,
-        user: null,
+        user: null
       };
     default:
       return store;

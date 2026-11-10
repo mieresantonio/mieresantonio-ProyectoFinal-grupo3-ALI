@@ -14,7 +14,7 @@ import uuid
 # El entorno debe fijarse ANTES de importar la app (app.py lee env al cargar).
 _TMP = tempfile.mkdtemp(prefix="blockali-tests-")
 os.environ["DATABASE_URL"] = f"sqlite:///{_TMP}/test.db"
-os.environ["FLASK_APP_KEY"] = "test-secret-key"
+os.environ["FLASK_APP_KEY"] = "test-secret-key-blockali-tests-only-2026"
 os.environ.pop("FLASK_DEBUG", None)
 os.environ.pop("ENABLE_ADMIN", None)
 # La suite ES un entorno controlado y varios fixtures inician sesión con

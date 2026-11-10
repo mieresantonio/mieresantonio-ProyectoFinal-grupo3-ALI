@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { ArrowRight, FileText, Flame, Award } from "lucide-react";
@@ -15,10 +15,11 @@ export const Dashboard = () => {
     const [certs, setCerts] = useState([]);
 
     useEffect(() => {
+        let activo = true;
         // Si no hay sesión iniciada, no tiene caso mostrar el panel: mandamos a login.
         if (!store.token) {
             navigate("/login");
-            return;
+            return () => { activo = false; };
         }
 
         const userGuardado = localStorage.getItem("user");
@@ -35,6 +36,7 @@ export const Dashboard = () => {
                 );
                 if (!dashboardResp.ok) throw new Error("No se pudo cargar tu perfil");
                 const dashboardData = await dashboardResp.json();
+                if (!activo) return;
                 dispatch({ type: "set_user", payload: dashboardData.user });
 
                 // 2. Trae el progreso de lecciones de ese usuario (incluye
@@ -45,20 +47,22 @@ export const Dashboard = () => {
                 );
                 if (!progressResp.ok) throw new Error("No se pudo cargar tu progreso");
                 const progressData = await progressResp.json();
+                if (!activo) return;
                 setProgress(progressData);
 
                 // Gamificación y certificados: si fallan, el panel
                 // simplemente no muestra esas secciones.
-                getGamification(store.token).then(setGami).catch(() => {});
-                getMyCertificates(store.token).then(setCerts).catch(() => {});
+                getGamification(store.token).then((g) => { if (activo) setGami(g); }).catch(() => {});
+                getMyCertificates(store.token).then((c) => { if (activo) setCerts(c); }).catch(() => {});
             } catch (err) {
-                setError(err.message);
+                if (activo) setError(err.message);
             } finally {
-                setLoading(false);
+                if (activo) setLoading(false);
             }
         };
 
         cargarDatos();
+        return () => { activo = false; };
     }, [store.token]);
 
     if (loading) {

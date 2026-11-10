@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { Hash, Blocks, ArrowRight } from "lucide-react";
 

@@ -60,8 +60,14 @@ def test_crear_con_datos_invalidos_da_400_no_500(client, admin_headers):
 
 
 def test_crear_con_padre_inexistente_da_404(client, admin_headers):
+    # R10: el payload lleva level porque desde la corrección de H-1 es
+    # un campo requerido y la validación (400) va antes que la
+    # existencia del padre (404), como en lessons/quizzes. La intención
+    # del test no cambia: con el cuerpo completo y válido, el padre
+    # inexistente responde 404.
     r = client.post("/api/modules", headers=admin_headers, json={
-        "title": "Huérfano", "learning_path_id": 99999})
+        "title": "Huérfano", "level": "Principiante",
+        "learning_path_id": 99999})
     assert r.status_code == 404
     r = client.post("/api/lessons", headers=admin_headers, json={
         "title": "Huérfana", "content": "c", "module_id": 99999,

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getMyCertificates } from "../services/gamificationService";
 import useGlobalReducer from "../hooks/useGlobalReducer";
@@ -13,12 +13,14 @@ export const CertificatePage = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let activo = true;
         getMyCertificates(store.token)
-            .then((certs) =>
-                setCert(certs.find((c) => c.path_id === parseInt(pathId)) || null)
-            )
-            .catch(() => setCert(null))
-            .finally(() => setLoading(false));
+            .then((certs) => {
+                if (activo) setCert(certs.find((c) => c.path_id === parseInt(pathId)) || null);
+            })
+            .catch(() => { if (activo) setCert(null); })
+            .finally(() => { if (activo) setLoading(false); });
+        return () => { activo = false; };
     }, [pathId, store.token]);
 
     if (loading) {
@@ -50,7 +52,7 @@ export const CertificatePage = () => {
         ? new Date(cert.issued_at).toLocaleDateString("es-ES", {
               day: "numeric",
               month: "long",
-              year: "numeric",
+              year: "numeric"
           })
         : "";
     const verifyUrl = `${window.location.origin}/verificar/${cert.code}`;

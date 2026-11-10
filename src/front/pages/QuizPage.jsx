@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, Link } from "react-router-dom";
 import { getQuizByLesson } from "../services/quizService.js";
 
@@ -10,6 +10,10 @@ export const QuizPage = () => {
     const [enviado, setEnviado] = useState(false);
     const [error, setError] = useState("");
     const params = useParams();
+    // Guarda de carrera (P1, ronda 14): mismo diseño que en CoursePage —
+    // cada llamada a cargarQuiz toma el siguiente número de la secuencia
+    // y solo escribe si sigue siendo la más reciente.
+    const quizSeq = useRef(0);
 
     // Lee el usuario de forma segura: si no hay sesión, devuelve null
     // en vez de tronar con JSON.parse(null).role
@@ -31,7 +35,7 @@ export const QuizPage = () => {
                     Authorization: `Bearer ${localStorage.getItem("token")}`
                 },
                 body: JSON.stringify({
-                    "quiz_score": calcularNota() / quiz.questions_data.length * 100,
+                    "quiz_score": calcularNota() / quiz.questions_data.length * 100
                 })
             });
 
@@ -46,15 +50,16 @@ export const QuizPage = () => {
         } catch (error) {
             setError(error.message);
         }
-    }
+    };
 
     const cargarQuiz = () => {
+        const seq = ++quizSeq.current;
         setQuizError("");
         // Antes, un fallo de red dejaba el spinner girando para
         // siempre: ahora se muestra el error con forma de reintentar.
         getQuizByLesson(lessonId)
-            .then((data) => setQuiz(data))
-            .catch(() => setQuizError("No se pudo cargar el quiz. Revisa tu conexión e inténtalo de nuevo."));
+            .then((data) => { if (seq === quizSeq.current) setQuiz(data); })
+            .catch(() => { if (seq === quizSeq.current) setQuizError("No se pudo cargar el quiz. Revisa tu conexión e inténtalo de nuevo."); });
     };
 
     useEffect(() => {
@@ -148,7 +153,7 @@ export const QuizPage = () => {
                                         ${letra === pregunta.correct_option &&
                                         currentUser?.role === "admin" ?
                                         "bg-success-subtle border-success" : ""}`}
-                                onClick={() => { if (!enviado) setRespuestas({ ...respuestas, [index]: letra }) }}
+                                onClick={() => { if (!enviado) setRespuestas({ ...respuestas, [index]: letra }); }}
                             >
                                 <span className="badge bg-primary-subtle me-2">
                                     {letra.toUpperCase()}

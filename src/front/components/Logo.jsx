@@ -1,4 +1,4 @@
-import React from "react";
+import PropTypes from "prop-types";
 
 export const Logo = ({ size = 32, showText = true, color = "currentColor" }) => {
     return (
@@ -29,4 +29,16 @@ export const Logo = ({ size = 32, showText = true, color = "currentColor" }) => 
             )}
         </div>
     );
+};
+
+// Las 3 props tienen valor por defecto en la firma, así que ninguna
+// es requerida. Forma según el uso real: `size` se usa como width/
+// height del SVG y en la aritmética size * 0.6 (número; los llamantes
+// Navbar.jsx y CertificatePage.jsx pasan 32 y 44), `showText` decide
+// un render condicional (bool) y `color` alimenta stroke/fill del SVG
+// (cadena, p. ej. el "currentColor" por defecto).
+Logo.propTypes = {
+    size: PropTypes.number,
+    showText: PropTypes.bool,
+    color: PropTypes.string
 };

@@ -1,21 +1,21 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { CheckCircle2, XCircle, ArrowRight, RotateCcw } from "lucide-react";
 
 export const VerifyEmail = () => {
-    const { token: paramToken } = useParams();
     const [searchParams] = useSearchParams();
-    const token = paramToken || searchParams.get("token");
+    const token = searchParams.get("token");
 
     const [loading, setLoading] = useState(true);
     const [status, setStatus] = useState({ success: false, message: "" });
 
     useEffect(() => {
+        let activo = true;
         const verifyUserToken = async () => {
             if (!token) {
                 setStatus({
                     success: false,
-                    message: "No se proporcionó ningún token de verificación.",
+                    message: "No se proporcionó ningún token de verificación."
                 });
                 setLoading(false);
                 return;
@@ -26,7 +26,7 @@ export const VerifyEmail = () => {
                 const response = await fetch(`${backendUrl}/api/verify-email`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token }),
+                    body: JSON.stringify({ token })
                 });
 
                 const data = await response.json();
@@ -35,21 +35,22 @@ export const VerifyEmail = () => {
                     throw new Error(data.error || "Error al verificar la cuenta.");
                 }
 
-                setStatus({
+                if (activo) setStatus({
                     success: true,
-                    message: data.message || "¡Cuenta verificada exitosamente!",
+                    message: data.message || "¡Cuenta verificada exitosamente!"
                 });
             } catch (error) {
-                setStatus({
+                if (activo) setStatus({
                     success: false,
-                    message: error.message || "El enlace es inválido o ha expirado.",
+                    message: error.message || "El enlace es inválido o ha expirado."
                 });
             } finally {
-                setLoading(false);
+                if (activo) setLoading(false);
             }
         };
 
         verifyUserToken();
+        return () => { activo = false; };
     }, [token]);
 
     return (

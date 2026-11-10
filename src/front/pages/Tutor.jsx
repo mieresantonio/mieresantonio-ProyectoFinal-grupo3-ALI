@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { GraduationCap, Send, BookOpen, Sparkles } from "lucide-react";
 import { askTutor } from "../services/tutorService";
@@ -12,7 +12,7 @@ const SUGERENCIAS = [
     "¿Qué es una blockchain?",
     "¿Qué pasa si pierdo mi frase semilla?",
     "¿Cómo funciona el slashing en Proof of Stake?",
-    "¿Para qué sirve require en Solidity?",
+    "¿Para qué sirve require en Solidity?"
 ];
 
 const MENSAJE_INICIAL = {
@@ -22,7 +22,7 @@ const MENSAJE_INICIAL = {
         "las lecciones de la plataforma y te respondo con ese contenido, " +
         "citando la lección de origen. Si algo no está en las lecciones, " +
         "te lo digo en vez de inventarlo.",
-    sources: [],
+    sources: []
 };
 
 export const Tutor = () => {
@@ -47,7 +47,7 @@ export const Tutor = () => {
             const data = await askTutor(question);
             setMessages((prev) => [
                 ...prev,
-                { role: "tutor", text: data.answer, sources: data.sources || [] },
+                { role: "tutor", text: data.answer, sources: data.sources || [] }
             ]);
         } catch (e) {
             setError("No se pudo contactar al tutor. Revisa tu conexión e inténtalo de nuevo.");

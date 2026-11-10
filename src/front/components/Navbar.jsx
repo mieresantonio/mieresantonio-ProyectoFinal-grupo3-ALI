@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { getCourses } from "../services/coursesService";
 import { Logo } from "./Logo.jsx";
@@ -10,6 +10,12 @@ export const Navbar = () => {
 	const [searchText, setSearchText] = useState("");
 	const [suggestionsOpen, setSuggestionsOpen] = useState(false);
 	const [courses, setCourses] = useState([]);
+	const blurTimeoutRef = useRef(null);
+
+	// Si el componente se desmonta con el cierre de sugerencias
+	// pendiente, el temporizador se cancela en vez de escribir
+	// sobre un componente que ya no existe.
+	useEffect(() => () => clearTimeout(blurTimeoutRef.current), []);
 
 	// Carga la lista de cursos una sola vez, para poder sugerirlos
 	// mientras el usuario escribe. Si falla, simplemente no hay
@@ -76,7 +82,7 @@ export const Navbar = () => {
 						value={searchText}
 						onChange={(e) => setSearchText(e.target.value)}
 						onFocus={() => setSuggestionsOpen(true)}
-						onBlur={() => setTimeout(() => setSuggestionsOpen(false), 150)}
+						onBlur={() => { blurTimeoutRef.current = setTimeout(() => setSuggestionsOpen(false), 150); }}
 					/>
 
 					{suggestionsOpen && suggestions.length > 0 && (

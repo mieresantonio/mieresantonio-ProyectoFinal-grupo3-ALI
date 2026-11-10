@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { verifyCertificate } from "../services/gamificationService";
 import { ShieldCheck, ShieldX } from "lucide-react";
@@ -11,10 +11,12 @@ export const VerifyPage = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let activo = true;
         verifyCertificate(code)
-            .then(setResult)
-            .catch(() => setResult({ valid: false }))
-            .finally(() => setLoading(false));
+            .then((res) => { if (activo) setResult(res); })
+            .catch(() => { if (activo) setResult({ valid: false }); })
+            .finally(() => { if (activo) setLoading(false); });
+        return () => { activo = false; };
     }, [code]);
 
     if (loading) {
@@ -56,7 +58,7 @@ export const VerifyPage = () => {
                                         ? new Date(result.issued_at).toLocaleDateString("es-ES", {
                                               day: "numeric",
                                               month: "long",
-                                              year: "numeric",
+                                              year: "numeric"
                                           })
                                         : "—"}
                                 </b>

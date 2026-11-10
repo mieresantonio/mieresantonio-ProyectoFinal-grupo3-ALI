@@ -1,10 +1,11 @@
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import { BookOpen, Clock } from "lucide-react";
 
 const LEVEL_BADGE_CLASS = {
     Principiante: "bg-info-subtle text-info-emphasis",
     Intermedio: "bg-warning-subtle text-warning-emphasis",
-    Avanzado: "bg-danger-subtle text-danger-emphasis",
+    Avanzado: "bg-danger-subtle text-danger-emphasis"
 };
 
 const LearningPathCard = ({ data }) => {
@@ -36,7 +37,24 @@ const LearningPathCard = ({ data }) => {
                 Ver Temario
             </Link>
         </div>
-    </div>
-}
+    </div>;
+};
+
+// Forma de GET /api/learning-paths (routes.py): number_of_modules es el
+// len de los módulos (siempre presente) y title es nullable=False en
+// models.py; description, image_url, time_required y level son
+// nullable=True en el modelo — el componente tolera su ausencia
+// (imagen condicional, badge con clase por defecto).
+LearningPathCard.propTypes = {
+    data: PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        title: PropTypes.string.isRequired,
+        description: PropTypes.string,
+        image_url: PropTypes.string,
+        time_required: PropTypes.string,
+        level: PropTypes.string,
+        number_of_modules: PropTypes.number.isRequired
+    }).isRequired
+};
 
 export default LearningPathCard;

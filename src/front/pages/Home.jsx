@@ -1,4 +1,3 @@
-import React from "react";
 import { PriceTicker } from "../components/PriceTicker.jsx";
 import { Hero } from "../components/Hero";
 import { Features } from "../components/Features.jsx";
@@ -14,7 +13,7 @@ export const Home = () => {
 		const user = localStorage.getItem("user");
 		if (user) return JSON.parse(user).role;
 		return null;
-	}
+	};
 
 	return (
 		<>

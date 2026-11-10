@@ -1,19 +1,20 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { getPrices } from "../services/pricesService.js";
 
 export const PriceTicker = () => {
     const [precios, setPrecios] = useState([]);
 
     useEffect(() => {
+        let activo = true;
         const cargar = () => {
             getPrices()
-                .then((data) => setPrecios(data))
-                .catch((err) => console.log("Error cargando precios:", err));
+                .then((data) => { if (activo) setPrecios(data); })
+                .catch(() => {});
         };
 
         cargar();
         const intervalo = setInterval(cargar, 60000);
-        return () => clearInterval(intervalo);
+        return () => { activo = false; clearInterval(intervalo); };
     }, []);
 
     if (precios.length === 0) return null;

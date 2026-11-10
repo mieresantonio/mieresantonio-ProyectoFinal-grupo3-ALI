@@ -6,12 +6,12 @@ const API = import.meta.env.VITE_BACKEND_URL;
 // igual que el resto de la app construye sus cabeceras de autorización.
 const authHeaders = (token) => ({
     "Content-Type": "application/json",
-    Authorization: "Bearer " + token,
+    Authorization: "Bearer " + token
 });
 
 export const getGamification = async (token) => {
     const resp = await fetch(`${API}/api/gamification/me`, {
-        headers: authHeaders(token),
+        headers: authHeaders(token)
     });
     if (!resp.ok) throw new Error("No se pudo cargar tu gamificación");
     return resp.json();
@@ -19,7 +19,7 @@ export const getGamification = async (token) => {
 
 export const getMyCertificates = async (token) => {
     const resp = await fetch(`${API}/api/certificates/mine`, {
-        headers: authHeaders(token),
+        headers: authHeaders(token)
     });
     if (!resp.ok) throw new Error("No se pudieron cargar tus certificados");
     return resp.json();
@@ -29,7 +29,7 @@ export const claimCertificate = async (pathId, token) => {
     const resp = await fetch(`${API}/api/certificates/claim`, {
         method: "POST",
         headers: authHeaders(token),
-        body: JSON.stringify({ path_id: pathId }),
+        body: JSON.stringify({ path_id: pathId })
     });
     const data = await resp.json();
     if (!resp.ok) {

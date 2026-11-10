@@ -1,4 +1,3 @@
-import React from "react";
 
 export const HowItWorks = () => {
     const pasos = [

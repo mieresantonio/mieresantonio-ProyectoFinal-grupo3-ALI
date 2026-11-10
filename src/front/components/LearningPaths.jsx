@@ -11,15 +11,14 @@ const LearningPaths = () => {
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/learning-paths`);
             const data = await response.json();
-            dispatch({ type: "set_learning_paths", payload: data })
+            dispatch({ type: "set_learning_paths", payload: data });
         } catch (error) {
-            console.log(error);
         }
-    }
+    };
 
     useEffect(() => {
         getLearningPaths();
-    }, [])
+    }, []);
 
     return <div className="container py-5">
         <div className="row text-center mb-4">
@@ -30,7 +29,7 @@ const LearningPaths = () => {
             {store.learningPaths?.map((value, index) => {
                 return <div key={value.id} className="col-12 col-md-6 col-lg-4">
                     <LearningPathCard data={value} />
-                </div>
+                </div>;
             })}
         </div>
         <div className="row">
@@ -40,7 +39,7 @@ const LearningPaths = () => {
                 </Link>
             </div>
         </div>
-    </div>
-}
+    </div>;
+};
 
 export default LearningPaths;

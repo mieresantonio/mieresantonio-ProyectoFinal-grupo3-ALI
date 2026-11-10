@@ -1,4 +1,3 @@
-import React from "react";
 import { Wallet, Code, GraduationCap } from "lucide-react";
 
 export const ForWho = () => {

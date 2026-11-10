@@ -1,4 +1,3 @@
-import React from "react";
 import { FileText, ClipboardCheck, Network, FlaskConical } from "lucide-react";
 
 export const Features = () => {

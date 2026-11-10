@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,6 +11,11 @@ const LessonPage = () => {
     const [loadError, setLoadError] = useState("");
     const [userProgress, setUserProgress] = useState({});
     const [error, setError] = useState("");
+    // Guarda de carrera por recurso (P1, ronda 14): mismo diseño que en
+    // CoursePage — cada llamada toma el siguiente número de su secuencia
+    // y solo escribe si sigue siendo la más reciente de ese recurso.
+    const lessonSeq = useRef(0);
+    const progressSeq = useRef(0);
 
     // Lee el usuario de forma segura: si no hay sesión, devuelve null
     // en vez de tronar con JSON.parse(null).role
@@ -21,6 +26,7 @@ const LessonPage = () => {
     const currentUser = getCurrentUser();
 
     const getLesson = async () => {
+        const seq = ++lessonSeq.current;
         setLoadError("");
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/lessons/${params.lessonId}`, {
@@ -28,25 +34,27 @@ const LessonPage = () => {
                 headers: {
                     'Content-Type': 'application/json'
                 }
-            })
+            });
 
             if (!response.ok) {
                 throw new Error("No se pudo obtener información");
             }
 
             const data = await response.json();
+            if (seq !== lessonSeq.current) return;
             setLesson(data);
 
         } catch (error) {
-            console.log(error);
+            if (seq !== lessonSeq.current) return;
             // Antes, un fallo de red dejaba el spinner girando para
             // siempre: ahora se muestra el error con forma de reintentar.
             setLoadError("No se pudo cargar esta lección. Revisa tu conexión e inténtalo de nuevo.");
         }
-    }
+    };
 
     const getUserProgress = async () => {
         if (currentUser?.role === "student") {
+            const seq = ++progressSeq.current;
             try {
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/progress/${currentUser.id}/${params.lessonId}`, {
                     method: 'GET',
@@ -61,13 +69,13 @@ const LessonPage = () => {
                 }
 
                 const data = await response.json();
+                if (seq !== progressSeq.current) return;
                 setUserProgress(data);
 
             } catch (error) {
-                console.log(error);
             }
         }
-    }
+    };
 
     const handleLessonDone = async () => {
 
@@ -83,7 +91,7 @@ const LessonPage = () => {
                         Authorization: `Bearer ${localStorage.getItem("token")}`
                     },
                     body: JSON.stringify({
-                        "is_completed": true,
+                        "is_completed": true
                     })
                 });
 
@@ -98,32 +106,47 @@ const LessonPage = () => {
                 setError(error.message);
             }
         }
-    }
+    };
 
     const previousLessonId = () => {
         const lessons = lesson.module_lessons || [];
         const current = lessons.find(lesson => lesson.id === parseInt(params.lessonId));
         if (!current) return "";
-        const previousLesson = lessons.find(lesson => lesson.order === current.order - 1);
-        if (!previousLesson) return "";
+        // Antes se buscaba exactamente order - 1: con órdenes no contiguos
+        // dentro del módulo (p. ej. 1 y 3) no había coincidencia, se
+        // devolvía "" y «Anterior» construía /lesson/<pathId>/, que cae
+        // en el 404. Ahora se toma la lección existente de mayor orden
+        // menor que el de la actual (la anterior real, haya hueco o no);
+        // si no hay ninguna, se devuelve "" y la página muestra
+        // «Volver al Curso» en vez de «Anterior».
+        const previousLessons = lessons.filter(lesson => lesson.order < current.order);
+        if (previousLessons.length === 0) return "";
+        const previousLesson = previousLessons.reduce((a, b) => (b.order > a.order ? b : a));
         return previousLesson.id;
-    }
+    };
 
 
     const nextLessonId = () => {
         const lessons = lesson.module_lessons || [];
         const current = lessons.find(lesson => lesson.id === parseInt(params.lessonId));
         if (!current) return "quiz";
-        const nextLesson = lessons.find(lesson => lesson.order === current.order + 1);
-        if (!nextLesson) return "quiz";
-
+        // Antes se buscaba exactamente order + 1: con órdenes no contiguos
+        // dentro del módulo (p. ej. 1 y 3) no había coincidencia, se
+        // devolvía "quiz" y «Siguiente» saltaba al quiz saltándose la
+        // lección existente de orden 3. Ahora se toma la lección existente
+        // de menor orden mayor que el de la actual (la siguiente real,
+        // haya hueco o no), simétrico a previousLessonId; solo si no hay
+        // ninguna siguiente se devuelve "quiz".
+        const nextLessons = lessons.filter(lesson => lesson.order > current.order);
+        if (nextLessons.length === 0) return "quiz";
+        const nextLesson = nextLessons.reduce((a, b) => (b.order < a.order ? b : a));
         return nextLesson.id;
-    }
+    };
 
     useEffect(() => {
         getLesson();
         getUserProgress();
-    }, [params.lessonId])
+    }, [params.lessonId]);
 
     if (loadError) {
         return (
@@ -188,7 +211,7 @@ const LessonPage = () => {
             </div>
         </div>
         <div className="d-flex flex-wrap gap-2 justify-content-between pt-4 pb-2">
-            {lesson.order_number === 1 ? <Link to={`/course/${params.pathId}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
+            {previousLessonId() === "" ? <Link to={`/course/${params.pathId}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
                 <ArrowLeft size={16} /> Volver al Curso
             </Link> : <Link to={`/lesson/${params.pathId}/${previousLessonId()}`} className="btn btn-outline-secondary rounded-pill d-inline-flex align-items-center gap-2">
                 <ArrowLeft size={16} /> Anterior
@@ -197,14 +220,14 @@ const LessonPage = () => {
                 <Link to={`/lesson/${params.pathId}/${nextLessonId()}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                     Siguiente <ArrowRight size={16} />
                 </Link>
-                : hasQuiz ? <Link to={`/quizzes/${lesson.module_lessons[0].id}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
+                : hasQuiz ? <Link to={`/quizzes/${params.lessonId}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                     Ir al Quiz <ArrowRight size={16} />
                 </Link> : <Link to={`/course/${params.pathId}`} className="btn btn-primary rounded-pill px-4 d-inline-flex align-items-center gap-2">
                     Volver al Curso <ArrowRight size={16} />
                 </Link>}
         </div>
-    </div>
+    </div>;
 
-}
+};
 
 export default LessonPage;

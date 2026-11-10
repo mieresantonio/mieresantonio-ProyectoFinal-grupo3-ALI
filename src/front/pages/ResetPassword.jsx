@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 
 export const ResetPassword = () => {
@@ -37,7 +37,7 @@ export const ResetPassword = () => {
                 {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ token, password }),
+                    body: JSON.stringify({ token, password })
                 }
             );
 

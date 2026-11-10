@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { getCourses } from "../services/coursesService";
 import { CourseFilterBar } from "../components/CourseFilterBar";
@@ -12,22 +12,43 @@ export const Courses = () => {
     const [searchParams] = useSearchParams();
     const [searchText, setSearchText] = useState(searchParams.get("q") || "");
     const [activeLevel, setActiveLevel] = useState("Todas las Rutas");
+    // Guarda de carrera (P1, ronda 14): mismo diseño que en CoursePage —
+    // cada llamada a cargar toma el siguiente número de la secuencia y
+    // solo escribe (datos, error y fin de carga) si sigue siendo la más
+    // reciente; una carga vieja tampoco apaga el spinner de la nueva.
+    const cargarSeq = useRef(0);
 
     // Carga los cursos reales desde el backend al montar la página.
     // Es una función aparte para que el botón "Reintentar" pueda
     // volver a pedir los datos sin recargar toda la página.
     const cargar = () => {
+        const seq = ++cargarSeq.current;
         setLoading(true);
         setError(null);
         getCourses()
-            .then((data) => setCourses(data))
-            .catch((err) => setError(err.message))
-            .finally(() => setLoading(false));
+            .then((data) => { if (seq === cargarSeq.current) setCourses(data); })
+            .catch((err) => { if (seq === cargarSeq.current) setError(err.message); })
+            .finally(() => { if (seq === cargarSeq.current) setLoading(false); });
     };
 
     useEffect(() => {
         cargar();
     }, []);
+
+    // Sincronía URL → filtro (H2, ronda 17): el Navbar busca con
+    // navigate("/courses?q=<texto>"); si esta página ya está montada,
+    // el useState inicial no se entera del cambio de query y el
+    // filtro se quedaba con el valor anterior. Este efecto copia la
+    // q de la URL al filtro cada vez que la q cambia, así que la URL
+    // manda al navegar (carga directa, llegada desde otra ruta y
+    // navegación a la misma ruta). Teclear en el buscador interno
+    // (CourseFilterBar) solo toca el estado local, sin escribir la
+    // URL: por eso no hay guerra — el efecto depende solo de la q y
+    // no se dispara cuando cambia el estado.
+    const urlQuery = searchParams.get("q") || "";
+    useEffect(() => {
+        setSearchText(urlQuery);
+    }, [urlQuery]);
 
     // Filtra en el navegador (client-side) por texto y por nivel.
     const filteredCourses = courses.filter((course) => {

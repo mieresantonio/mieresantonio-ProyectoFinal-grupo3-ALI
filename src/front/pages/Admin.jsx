@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 export const Admin = () => {
     const [formAbierto, setFormAbierto] = useState(null);
@@ -16,6 +16,7 @@ export const Admin = () => {
     const [nivelModulo, setNivelModulo] = useState("Principiante");
 
     useEffect(() => {
+        let activo = true;
         const userGuardado = localStorage.getItem("user");
         if (userGuardado) {
             setUsuario(JSON.parse(userGuardado));
@@ -24,20 +25,22 @@ export const Admin = () => {
         const backendUrl = import.meta.env.VITE_BACKEND_URL;
         fetch(backendUrl + "/api/learning-paths")
             .then((res) => res.json())
-            .then((data) => setRutas(data))
-            .catch((err) => console.log("Error cargando rutas:", err));
+            .then((data) => { if (activo) setRutas(data); })
+            .catch(() => {});
 
         fetch(backendUrl + "/api/modules")
             .then((res) => res.json())
-            .then((data) => setModulos(data))
-            .catch((err) => console.log("Error cargando módulos:", err));
+            .then((data) => { if (activo) setModulos(data); })
+            .catch(() => {});
 
         fetch(backendUrl + "/api/users", {
             headers: { "Authorization": "Bearer " + localStorage.getItem("token") }
         })
             .then((res) => res.json())
-            .then((data) => setListaDeUsuarios(data))
-            .catch((err) => console.log("Error cargando usuarios:", err));
+            .then((data) => { if (activo) setListaDeUsuarios(data); })
+            .catch(() => {});
+
+        return () => { activo = false; };
     }, []);
 
     const guardarLeccion = async (rutaId) => {
@@ -57,14 +60,12 @@ export const Admin = () => {
                 })
             });
             const data = await res.json();
-            console.log("Respuesta:", data);
 
             setTituloLeccion("");
             setContenidoLeccion("");
             setModuloElegido("");
             setFormAbierto(null);
         } catch (err) {
-            console.log("Error guardando:", err);
         }
     };
 
@@ -84,7 +85,6 @@ export const Admin = () => {
             setTituloRuta("");
             setFormRutaAbierto(false);
         } catch (err) {
-            console.log("Error guardando ruta:", err);
         }
     };
 
@@ -108,7 +108,6 @@ export const Admin = () => {
             setTituloModulo("");
             setFormModuloAbierto(null);
         } catch (err) {
-            console.log("Error guardando módulo:", err);
         }
     };
 

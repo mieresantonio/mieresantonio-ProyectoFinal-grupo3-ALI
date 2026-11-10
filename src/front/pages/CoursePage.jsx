@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import CourseDescription from "../components/CourseDescription";
 import ModuleCard from "../components/ModuleCard";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMyCertificates, claimCertificate } from "../services/gamificationService";
 import useGlobalReducer from "../hooks/useGlobalReducer";
 import { Award } from "lucide-react";
@@ -16,20 +16,29 @@ const CoursePage = () => {
     const [claiming, setClaiming] = useState(false);
     const { store } = useGlobalReducer();
     const params = useParams();
+    // Guarda de carrera por recurso (P1, ronda 14): cada llamada a un
+    // fetcher toma el siguiente número de su secuencia; al resolver, solo
+    // escribe si sigue siendo la llamada más reciente de ese recurso.
+    // Así, la respuesta tardía de la ruta anterior no pisa la vista
+    // actual, y «Reintentar» conserva su comportamiento: al llamarse de
+    // nuevo, su llamada pasa a ser la más reciente y sí escribe.
+    const pathSeq = useRef(0);
+    const progressSeq = useRef(0);
 
     const verifyUser = () => {
         const user = localStorage.getItem("user");
         if (user) return JSON.parse(user).role;
         return null;
-    }
+    };
 
     const getLearningPath = async () => {
+        const seq = ++pathSeq.current;
         setLoadError("");
         try {
             const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/learning-paths/${params.theId}`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 }
             });
 
@@ -37,18 +46,20 @@ const CoursePage = () => {
                 throw new Error("No es posible acceder a la información");
             }
             const data = await response.json();
+            if (seq !== pathSeq.current) return;
             setLearningPath(data);
 
         } catch (error) {
-            console.log(error);
+            if (seq !== pathSeq.current) return;
             // Antes, un fallo de red dejaba el spinner girando para
             // siempre: ahora se muestra el error con forma de reintentar.
             setLoadError("No se pudo cargar esta ruta. Revisa tu conexión e inténtalo de nuevo.");
         }
-    }
+    };
 
     const getUserProgress = async () => {
         if (verifyUser() === "student") {
+            const seq = ++progressSeq.current;
             try {
                 const response = await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/progress/${JSON.parse(localStorage.getItem("user")).id}`, {
                     method: 'GET',
@@ -62,38 +73,51 @@ const CoursePage = () => {
                     throw new Error("No se pudo obtener el progreso del usuario");
                 }
                 const data = await response.json();
+                if (seq !== progressSeq.current) return;
                 setUserProgress(data);
 
             } catch (error) {
-                console.log(error);
             }
         }
-    }
+    };
 
     const totalLessonsOfPath = () => {
         return learningPath?.modules.reduce((num, module) => num + module.lessons.length, 0);
-    }
+    };
 
     const lessonsDoneOfPath = () => {
-        return userProgress?.filter(progress => progress.is_completed === true).length;
-    }
+        // GET /progress/<user> devuelve el progreso de TODAS las rutas
+        // (cada fila trae su path_id): sin filtrar por esta ruta, el
+        // avance de una ruta sumaba las lecciones completadas en las
+        // demás y podía mostrar más del 100% (p. ej. 5/4).
+        if (!userProgress || !learningPath) return 0;
+        return userProgress.filter(progress =>
+            progress.is_completed === true && progress.path_id === learningPath.id
+        ).length;
+    };
 
     const progressPath = () => {
         const total = totalLessonsOfPath();
         if (!total) return 0;
         return Math.round(lessonsDoneOfPath() * 100 / total);
-    }
+    };
 
     useEffect(() => {
         getLearningPath();
         getUserProgress();
         if (verifyUser() === "student") {
+            // Esta cadena vive entera dentro del efecto (no se comparte
+            // con ningún handler): se guarda con el flag `activo`, el
+            // mismo idioma de Lab.jsx aplicado en la ronda 13.
+            let activo = true;
             getMyCertificates(store.token)
-                .then((certs) =>
-                    setCert(certs.find((c) => c.path_id === parseInt(params.theId)) || null))
+                .then((certs) => {
+                    if (activo) setCert(certs.find((c) => c.path_id === parseInt(params.theId)) || null);
+                })
                 .catch(() => {});
+            return () => { activo = false; };
         }
-    }, [params.theId])
+    }, [params.theId]);
 
     const handleClaim = async () => {
         setClaiming(true);
@@ -153,7 +177,7 @@ const CoursePage = () => {
                     {learningPath?.modules.sort((a, b) => a.id - b.id).map((module, index) => {
                         return <div key={module.id} className="col-12 col-md-6 mb-4">
                             <ModuleCard path={learningPath.id} data={module} order={index + 1} userType={verifyUser()} userProgress={userProgress} />
-                        </div>
+                        </div>;
                     })}
                 </div>
             </div>
@@ -193,7 +217,7 @@ const CoursePage = () => {
                 </div>
             </div> : ""}
         </div>
-    </div>
-}
+    </div>;
+};
 
 export default CoursePage;

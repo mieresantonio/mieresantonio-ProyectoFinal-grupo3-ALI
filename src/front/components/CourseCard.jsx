@@ -1,12 +1,12 @@
-import React from "react";
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import { Clock } from "lucide-react";
 
 // Colores del badge de nivel, según el diseño.
 const LEVEL_BADGE_CLASS = {
 	Principiante: "bg-info-subtle text-info-emphasis",
 	Intermedio: "bg-warning-subtle text-warning-emphasis",
-	Avanzado: "bg-danger-subtle text-danger-emphasis",
+	Avanzado: "bg-danger-subtle text-danger-emphasis"
 };
 
 export const CourseCard = ({ course }) => {
@@ -55,4 +55,23 @@ export const CourseCard = ({ course }) => {
 			</div>
 		</div>
 	);
+};
+
+// Forma construida en services/coursesService.js desde
+// GET /api/learning-paths: duration_hours es el time_required de la API
+// (String(50) nullable en models.py: texto, no horas numéricas) y
+// modules_count es number_of_modules (len de los módulos, siempre
+// presente). title es nullable=False en el modelo; description,
+// image_url y level son nullable y el componente tolera su ausencia
+// (imagen y duración condicionales, badge con clase por defecto).
+CourseCard.propTypes = {
+	course: PropTypes.shape({
+		id: PropTypes.number.isRequired,
+		title: PropTypes.string.isRequired,
+		description: PropTypes.string,
+		level: PropTypes.string,
+		duration_hours: PropTypes.string,
+		modules_count: PropTypes.number.isRequired,
+		image_url: PropTypes.string
+	}).isRequired
 };

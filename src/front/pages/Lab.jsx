@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { Hash, Blocks, ShieldAlert, ShieldCheck, RotateCcw, ArrowRight } from "lucide-react";
 
@@ -13,7 +13,7 @@ const short = (h) => (h ? `${h.slice(0, 16)}…` : "—");
 const DATOS_INICIALES = [
     "Ana envía 2 BTC a Bruno",
     "Bruno envía 0,5 BTC a Carla",
-    "Carla envía 0,1 BTC a David",
+    "Carla envía 0,1 BTC a David"
 ];
 
 export const Lab = () => {
@@ -32,7 +32,15 @@ export const Lab = () => {
     const [hashes, setHashes] = useState([]);
     const [rota, setRota] = useState(false);
 
+    // Número de orden del recálculo más reciente: los recálculos
+    // en vuelo pueden terminar fuera de orden (demostrado en la
+    // ronda 15 con Web Crypto en Node: 502/2000 finales obsoletos
+    // con lanzamientos simultáneos) y solo el último lanzado
+    // puede escribir los hashes.
+    const recalcularSeq = useRef(0);
+
     const recalcular = async (arr) => {
+        const miSeq = ++recalcularSeq.current;
         const out = [];
         let prev = "0".repeat(64);
         for (const d of arr) {
@@ -40,7 +48,7 @@ export const Lab = () => {
             out.push(h);
             prev = h;
         }
-        setHashes(out);
+        if (miSeq === recalcularSeq.current) setHashes(out);
     };
 
     useEffect(() => { recalcular(DATOS_INICIALES); }, []);

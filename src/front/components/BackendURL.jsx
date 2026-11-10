@@ -1,11 +1,18 @@
-import React, { Component } from "react";
-import envFile from "../../../docs/assets/env-file.png"
+import PropTypes from "prop-types";
+import envFile from "../../../docs/assets/env-file.png";
 
 const Dark = ({children}) => <span className="bg-dark text-white px-1 rounded">{children}</span>;
+// `children` es el único contenido del <span> y todos los usos de este
+// mismo fichero lo pasan siempre (".env", "BACKEND_URL", …): sin
+// children el componente no renderiza nada. node = cualquier nodo
+// renderizable de React; requerido por ese uso invariable.
+Dark.propTypes = {
+	children: PropTypes.node.isRequired
+};
 export const BackendURL = () => (
 	<div className="mt-5 pt-5 w-50 mx-auto">
 		<h2>Missing BACKEND_URL env variable</h2>
-		<p>Here's a video tutorial on <a target="_blank" href="https://www.awesomescreenshot.com/video/16498567?key=72dbf905fe4fa6d3224783d02a8b1b9c">how to update your backend URL environment variable.</a></p>
+		<p>Here's a video tutorial on <a target="_blank" rel="noreferrer" href="https://www.awesomescreenshot.com/video/16498567?key=72dbf905fe4fa6d3224783d02a8b1b9c">how to update your backend URL environment variable.</a></p>
 		<p>There's a file called <Dark>.env</Dark> that contains the environmental variables for your project.</p>
 		<p>There's one variable called <Dark>BACKEND_URL</Dark> that needs to be manually set by yourself.</p>
 		<ol>

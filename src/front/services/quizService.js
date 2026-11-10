@@ -1,7 +1,7 @@
-// TODO (conectar con backend): hoy devuelve un quiz de ejemplo (mock).
-// Cuando haya quizzes cargados en la base de datos, esta es la ÚNICA función
-// que hay que cambiar por un fetch real a /api/quizzes/<lesson_id>.
-// Ningún componente visual debería necesitar cambios.
+// Conectado al backend: getQuizByLesson hace fetch real a
+// /api/quizzes/<lesson_id>. Solo si el fetch falla o la respuesta no es
+// OK se devuelve MOCK_QUIZ como respaldo (un quiz de ejemplo de 2
+// preguntas), para que la página no quede en blanco sin conexión.
 
 const MOCK_QUIZ = {
     id: 1,
@@ -42,7 +42,6 @@ export const getQuizByLesson = async (lessonId) => {
             questions_data: data.questions
         };
     } catch (err) {
-        console.log("Error cargando quiz, usando mock:", err);
         return MOCK_QUIZ;
     }
 };

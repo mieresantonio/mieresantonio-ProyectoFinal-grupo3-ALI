@@ -1,4 +1,5 @@
-import { Link } from "react-router-dom"
+import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import { CheckCircle2, FileText, ArrowRight, GraduationCap, Play } from "lucide-react";
 
 const ModuleCard = ({ path, data, order, userType, userProgress }) => {
@@ -8,7 +9,7 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
         if (!progress) return false;
 
         return progress.is_completed;
-    }
+    };
 
     return <div className="card h-100 border-0 shadow-sm">
         <div className="card-header border-0 pt-3" style={{ background: "transparent" }}>
@@ -51,7 +52,7 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                                     className="btn btn-outline-secondary btn-sm py-1 rounded-pill">
                                     Ver Lección</Link></div> : ""}
                     </div>
-                </li>
+                </li>;
             })}
         </ul>
         <div className="card-footer border-0 d-flex justify-content-between align-items-center py-3" style={{ background: "transparent" }}>
@@ -71,7 +72,32 @@ const ModuleCard = ({ path, data, order, userType, userProgress }) => {
                             </Link> : ""}
             </div>
         </div>
-    </div>
-}
+    </div>;
+};
+
+// Formas según la API: `data` es un módulo de GET /api/learning-paths/<id>
+// (routes.py: {id, title, lessons: [{id, title}]}; Module.title es
+// nullable=False en models.py) y `userProgress` es la lista de
+// GET /api/progress/<user_id> ({lesson_id, is_completed, ...}).
+// `userType` es el rol de User.serialize(): "student" | "admin", o null
+// sin sesión (verifyUser en CoursePage.jsx), por eso no es requerido;
+// `userProgress` solo se carga para estudiantes y el componente ya lo
+// lee con `?.`, tampoco requerido.
+ModuleCard.propTypes = {
+    path: PropTypes.number.isRequired,
+    data: PropTypes.shape({
+        title: PropTypes.string.isRequired,
+        lessons: PropTypes.arrayOf(PropTypes.shape({
+            id: PropTypes.number.isRequired,
+            title: PropTypes.string.isRequired
+        })).isRequired
+    }).isRequired,
+    order: PropTypes.number.isRequired,
+    userType: PropTypes.oneOf(["student", "admin"]),
+    userProgress: PropTypes.arrayOf(PropTypes.shape({
+        lesson_id: PropTypes.number.isRequired,
+        is_completed: PropTypes.bool
+    }))
+};
 
 export default ModuleCard;

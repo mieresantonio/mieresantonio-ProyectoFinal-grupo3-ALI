@@ -21,6 +21,6 @@ export const getCourses = async () => {
     level: path.level,
     duration_hours: path.time_required,
     modules_count: path.number_of_modules,
-    image_url: path.image_url,
+    image_url: path.image_url
   }));
 };

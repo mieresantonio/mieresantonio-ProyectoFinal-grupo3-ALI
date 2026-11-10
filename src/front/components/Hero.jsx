@@ -1,4 +1,3 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
@@ -8,7 +7,7 @@ export const Hero = () => {
         const user = localStorage.getItem("user");
         if (user) return JSON.parse(user).role;
         return null;
-    }
+    };
 
     return (
         <div className="container">

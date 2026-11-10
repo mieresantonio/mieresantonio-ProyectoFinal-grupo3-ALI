@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import PropTypes from "prop-types";
 import { Clock, BookOpen, Play, ArrowLeft } from "lucide-react";
 
 const CourseDescription = ({ data, userType }) => {
@@ -47,7 +48,31 @@ const CourseDescription = ({ data, userType }) => {
                 )}
             </div>
         </div>
-    </div>
-}
+    </div>;
+};
+
+// Forma de GET /api/learning-paths/<id> (routes.py). El componente lee
+// todo con `?.` y `data?.modules || []`, así que ni `data` ni `modules`
+// se marcan requeridos; dentro del shape, id y title siempre los emite
+// la API (title es nullable=False en models.py) y el resto de campos
+// de texto son nullable=True en el modelo. De los módulos solo se usan
+// lessons[].id y lessons.length. `userType` es el rol de
+// User.serialize(): "student" | "admin", o null sin sesión.
+CourseDescription.propTypes = {
+    data: PropTypes.shape({
+        id: PropTypes.number.isRequired,
+        title: PropTypes.string.isRequired,
+        description: PropTypes.string,
+        image_url: PropTypes.string,
+        time_required: PropTypes.string,
+        level: PropTypes.string,
+        modules: PropTypes.arrayOf(PropTypes.shape({
+            lessons: PropTypes.arrayOf(PropTypes.shape({
+                id: PropTypes.number.isRequired
+            }))
+        }))
+    }),
+    userType: PropTypes.oneOf(["student", "admin"])
+};
 
 export default CourseDescription;

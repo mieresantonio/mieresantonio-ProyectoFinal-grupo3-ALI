@@ -4,7 +4,7 @@ import os
 import re
 import unicodedata
 from collections import Counter
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 
 from flask import request, jsonify, Blueprint, current_app
 from flask_cors import CORS
@@ -45,6 +45,20 @@ def _es_score_valido(value):
     )
 
 
+def _current_user_id():
+    """Id numérico del JWT, o None si la identidad no es un id válido.
+
+    Los tokens de verificación de correo y de recuperación llevan el
+    EMAIL como identidad (claim 'type' distinto): usarlos como Bearer en
+    un endpoint protegido reventaba con ValueError en int() (500 HTML).
+    Con None, cada endpoint responde 403/404 en JSON, como debe ser.
+    """
+    try:
+        return int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None
+
+
 def _require_admin():
     """(usuario, None) si el JWT es de un admin; (None, respuesta 403) si no.
 
@@ -53,7 +67,8 @@ def _require_admin():
     token podía crear rutas/módulos/lecciones por API. Esto lo cierra en el
     servidor, que es donde cuenta.
     """
-    user = db.session.get(User, int(get_jwt_identity()))
+    user_id = _current_user_id()
+    user = db.session.get(User, user_id) if user_id is not None else None
     if not user or user.role != UserType.admin:
         return None, (jsonify({
             "error": "No tienes permiso para acceder a este recurso"}), 403)
@@ -67,7 +82,9 @@ def _require_admin():
 @api.route('/signup', methods=['POST'])
 def handle_signup():
     data = request.get_json(silent=True)
-    if not data:
+    # Un JSON válido pero no-objeto (p. ej. una lista) es truthy y hacía
+    # que _texto reventara con AttributeError en data.get (500 HTML).
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "Cuerpo de la petición inválido"}), 400
 
     username = _texto(data, 'username')
@@ -151,7 +168,7 @@ def handle_signup():
 @api.route('/login', methods=['POST'])
 def handle_login():
     data = request.get_json(silent=True)
-    if not data:
+    if not isinstance(data, dict) or not data:
         return jsonify({"error": "Cuerpo de la petición inválido"}), 400
 
     email = _texto(data, 'email').lower()
@@ -176,7 +193,7 @@ def handle_login():
 @api.route('/verify-email', methods=['POST'])
 def handle_verify_email():
     data = request.get_json(silent=True)
-    token = data.get('token') if data else None
+    token = data.get('token') if isinstance(data, dict) else None
     if not token:
         return jsonify({"error": "No se proporcionó ningún token de verificación."}), 400
 
@@ -206,7 +223,7 @@ def handle_verify_email():
 @api.route('/forgot-password', methods=['POST'])
 def handle_forgot_password():
     data = request.get_json(silent=True)
-    email = _texto(data, 'email').lower() if data else ''
+    email = _texto(data, 'email').lower() if isinstance(data, dict) else ''
 
     if not email:
         return jsonify({"error": "Debes proporcionar un correo electrónico."}), 400
@@ -268,8 +285,15 @@ def handle_forgot_password():
 @api.route('/reset-password', methods=['POST'])
 def handle_reset_password():
     data = request.get_json(silent=True)
-    token = data.get('token') if data else None
-    new_password = data.get('password') if data else None
+    if not isinstance(data, dict):
+        data = {}
+    token = data.get('token')
+    new_password = data.get('password')
+    # Igual que en signup/login: una contraseña que no es cadena no es
+    # válida. Sin esto, len(123456) reventaba con TypeError (500 HTML)
+    # antes de llegar a cualquier validación.
+    if not isinstance(new_password, str):
+        new_password = ''
 
     if not token or not new_password:
         return jsonify({"error": "Faltan datos para restablecer la contraseña."}), 400
@@ -317,7 +341,8 @@ def handle_hello():
 @api.route('/users', methods=['GET'])
 @jwt_required()
 def get_users():
-    current_user = db.session.get(User, int(get_jwt_identity()))
+    uid = _current_user_id()
+    current_user = db.session.get(User, uid) if uid is not None else None
     if not current_user or current_user.role != UserType.admin:
         return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
     users = db.session.execute(db.select(User)).scalars().all()
@@ -332,7 +357,8 @@ def get_user(user_id):
         return jsonify({"error": "User not found"}), 404
     # Solo el propio usuario o un admin: antes, cualquier cuenta con token
     # podía leer el correo y el rol de cualquier otro usuario por su id.
-    current_user = db.session.get(User, int(get_jwt_identity()))
+    uid = _current_user_id()
+    current_user = db.session.get(User, uid) if uid is not None else None
     if not current_user or (
         current_user.id != user_id and current_user.role != UserType.admin
     ):
@@ -401,7 +427,11 @@ def create_learning_path():
 
 @api.route('/modules', methods=['GET'])
 def get_modules():
-    modules = db.session.execute(db.select(Module)).scalars().all()
+    # selectinload: sin esto, m.lessons lanzaba una consulta por módulo
+    # (N+1 medido: 6 SQL para 5 módulos; con eager loading son 2).
+    modules = db.session.execute(
+        db.select(Module).options(selectinload(Module.lessons))
+    ).scalars().all()
     return jsonify([{
         "id": m.id,
         "title": m.title,
@@ -425,9 +455,15 @@ def create_module():
     if error:
         return error
     body = request.get_json(silent=True)
+    # level es NOT NULL en el modelo (Mapped[str] sin Optional) y no se
+    # validaba: sin level (o null) el commit reventaba con IntegrityError
+    # y Flask devolvía un 500 en HTML, contra el patrón 400 JSON del resto
+    # de la API de creación. Se valida como el título, con _texto (cadena
+    # no vacía), en la misma guarda y antes del 404 de la ruta padre.
     if not isinstance(body, dict) or not _texto(body, "title") \
+            or not _texto(body, "level") \
             or body.get("learning_path_id") is None:
-        return jsonify({"error": "Debes proporcionar título y learning_path_id"}), 400
+        return jsonify({"error": "Debes proporcionar título, level y learning_path_id"}), 400
     if not db.session.get(LearningPath, body["learning_path_id"]):
         return jsonify({"error": "Learning path not found"}), 404
     module = Module(title=body["title"], level=body.get(
@@ -466,9 +502,14 @@ def create_lesson():
     if error:
         return error
     body = request.get_json(silent=True)
+    # content es NOT NULL y la guarda solo comprobaba que la CLAVE
+    # existiera: con "content": null pasaba la validación y el commit
+    # reventaba igual que en create_module (500 HTML). Se exige que el
+    # valor no sea None, como module_id en la misma guarda.
     if not isinstance(body, dict) or not _texto(body, "title") \
-            or "content" not in body or body.get("module_id") is None \
-            or body.get("order_number") is None:
+            or body.get("content") is None or body.get("module_id") is None \
+            or not isinstance(body.get("order_number"), int) \
+            or isinstance(body.get("order_number"), bool):
         return jsonify({"error": "Debes proporcionar título, contenido, module_id y order_number"}), 400
     if not db.session.get(Module, body["module_id"]):
         return jsonify({"error": "Module not found"}), 404
@@ -521,13 +562,14 @@ def create_quiz():
 @jwt_required()
 def get_user_progress(user_id):
 
-    current_user_id = int(get_jwt_identity())
+    current_user_id = _current_user_id()
     if current_user_id != user_id:
         return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
 
     progress = db.session.execute(
         db.select(UserProgress).filter_by(user_id=user_id)
-        .options(selectinload(UserProgress.lesson))).scalars().all()
+        .options(selectinload(UserProgress.lesson)
+                 .selectinload(Lesson.module))).scalars().all()
 
     if not progress:
         return jsonify([]), 200
@@ -538,7 +580,7 @@ def get_user_progress(user_id):
 @api.route('/progress/<int:user_id>/<int:lesson_id>', methods=['GET'])
 @jwt_required()
 def get_lesson_progress(user_id, lesson_id):
-    current_user_id = int(get_jwt_identity())
+    current_user_id = _current_user_id()
     if current_user_id != user_id:
         return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
 
@@ -556,7 +598,7 @@ def get_lesson_progress(user_id, lesson_id):
 @api.route('/progress', methods=['POST'])
 @jwt_required()
 def create_initial_progress():
-    current_user_id = int(get_jwt_identity())
+    current_user_id = _current_user_id()
     body = request.get_json(silent=True)
 
     if not isinstance(body, list):
@@ -572,6 +614,24 @@ def create_initial_progress():
     if any(item.get("quiz_score") is not None
            and not _es_score_valido(item["quiz_score"]) for item in body):
         return jsonify({"error": "quiz_score debe ser un número entre 0 y 100"}), 400
+
+    if any(item.get("is_completed") is not None
+           and not isinstance(item.get("is_completed"), bool)
+           for item in body):
+        return jsonify({"error": "is_completed debe ser true o false"}), 400
+
+    # Las lecciones deben existir: sin esta comprobación se creaba
+    # progreso huérfano y GET /progress/<user> reventaba después al
+    # leer p.lesson.title sobre None (500). Mismo criterio que
+    # create_module/create_lesson/create_quiz con su padre (404).
+    if any(not isinstance(item["lesson_id"], int)
+           or isinstance(item["lesson_id"], bool) for item in body):
+        return jsonify({"error": "lesson_id debe ser un entero"}), 400
+    lesson_ids = {item["lesson_id"] for item in body}
+    known_lessons = {l.id for l in db.session.execute(
+        db.select(Lesson).where(Lesson.id.in_(lesson_ids))).scalars().all()}
+    if lesson_ids - known_lessons:
+        return jsonify({"error": "Lesson not found"}), 404
 
     # Sin duplicados: repetir esta inicialización creaba una fila nueva por
     # lección en cada llamada, y la XP de la gamificación sumaba doble.
@@ -606,7 +666,7 @@ def create_initial_progress():
 @api.route('/progress/<int:user_id>/<int:lesson_id>', methods=['PUT'])
 @jwt_required()
 def update_progress(user_id, lesson_id):
-    current_user_id = int(get_jwt_identity())
+    current_user_id = _current_user_id()
     if current_user_id != user_id:
         return jsonify({"error": "No tienes permiso para modificar este recurso"}), 403
 
@@ -618,20 +678,41 @@ def update_progress(user_id, lesson_id):
     if body.get("quiz_score") is not None \
             and not _es_score_valido(body["quiz_score"]):
         return jsonify({"error": "quiz_score debe ser un número entre 0 y 100"}), 400
+    # Un is_completed no booleano (p. ej. la cadena "false") llegaba a
+    # SQLAlchemy y devolvía un 500 con el error SQL en la respuesta.
+    if body.get("is_completed") is not None \
+            and not isinstance(body.get("is_completed"), bool):
+        return jsonify({"error": "is_completed debe ser true o false"}), 400
     progress = db.session.execute(db.select(UserProgress).filter_by(
         user_id=user_id, lesson_id=lesson_id)).scalars().one_or_none()
+    # Crear progreso de una lección inexistente dejaba una fila
+    # huérfana que rompía GET /progress/<user> (p.lesson es None).
+    if not progress and not db.session.get(Lesson, lesson_id):
+        return jsonify({"error": "Lesson not found"}), 404
 
     try:
         if not progress:
             progress = UserProgress(user_id=user_id, lesson_id=lesson_id)
             db.session.add(progress)
 
-        progress.is_completed = body.get("is_completed", progress.is_completed)
+        # is_completed: null significa «sin cambio» (y el default
+        # False del modelo si la fila se está creando), la misma
+        # semántica que ya tiene POST /progress: allí null supera su
+        # validación, al crear se guarda el default False y las filas
+        # ya existentes se saltan sin tocarlas. Asignar None tal cual
+        # solo reventaba en las filas EXISTENTES: la columna es
+        # NOT NULL (Mapped[bool] en models.py), el UPDATE lanzaba un
+        # IntegrityError y el except respondía 500 JSON con el SQL en
+        # el cuerpo (observación de la ronda 10). Por eso solo se
+        # asigna cuando viene un booleano de verdad; la guarda de
+        # arriba ya rechazó con 400 cualquier otro valor no nulo.
+        if body.get("is_completed") is not None:
+            progress.is_completed = body["is_completed"]
         progress.quiz_score = body.get("quiz_score", progress.quiz_score)
         # La fecha de finalización alimenta las rachas de la gamificación.
         # Solo se sella la primera vez que la lección queda completada.
         if progress.is_completed and progress.completed_at is None:
-            progress.completed_at = datetime.utcnow()
+            progress.completed_at = datetime.now(timezone.utc)
         db.session.commit()
         return jsonify({"message": "Progress updated"})
 
@@ -643,8 +724,10 @@ def update_progress(user_id, lesson_id):
 @api.route('/dashboard', methods=['GET'])
 @jwt_required()
 def handle_dashboard():
-    user_id = get_jwt_identity()
-    user = db.get_or_404(User, int(user_id))
+    user_id = _current_user_id()
+    if user_id is None:
+        return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
+    user = db.get_or_404(User, user_id)
     return jsonify({"message": "Bienvenido", "user": user.serialize()}), 200
 
 
@@ -698,7 +781,7 @@ def _calcular_rachas(fechas):
     for i in range(1, len(dias)):
         racha = racha + 1 if (dias[i] - dias[i - 1]).days == 1 else 1
         mejor = max(mejor, racha)
-    hoy = datetime.utcnow().date()
+    hoy = datetime.now(timezone.utc).date()
     actual = 0
     if dias[-1] in (hoy, hoy - timedelta(days=1)):
         actual = 1
@@ -712,7 +795,9 @@ def _calcular_rachas(fechas):
 @api.route('/gamification/me', methods=['GET'])
 @jwt_required()
 def gamification_me():
-    user_id = int(get_jwt_identity())
+    user_id = _current_user_id()
+    if user_id is None:
+        return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
     rows = db.session.execute(
         db.select(UserProgress).filter_by(user_id=user_id)).scalars().all()
 
@@ -768,11 +853,15 @@ def _resumen_ruta(user_id, path):
 @api.route('/certificates/claim', methods=['POST'])
 @jwt_required()
 def claim_certificate():
-    user = db.session.get(User, int(get_jwt_identity()))
+    uid = _current_user_id()
+    user = db.session.get(User, uid) if uid is not None else None
     if not user:
         return jsonify({"error": "Usuario no encontrado"}), 404
-    body = request.get_json(silent=True) or {}
-    path = db.session.get(LearningPath, body.get("path_id"))
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        body = {}
+    path_id = body.get("path_id")
+    path = db.session.get(LearningPath, path_id) if path_id is not None else None
     if not path:
         return jsonify({"error": "Ruta no encontrada"}), 404
 
@@ -795,7 +884,7 @@ def claim_certificate():
     if existing:
         return jsonify(existing.serialize()), 200
 
-    issued = datetime.utcnow()
+    issued = datetime.now(timezone.utc)
     digest = hashlib.sha256(
         f"{user.id}:{path.id}:{user.email}:{issued.isoformat()}".encode()
     ).hexdigest()[:15].upper()
@@ -813,9 +902,16 @@ def claim_certificate():
 @api.route('/certificates/mine', methods=['GET'])
 @jwt_required()
 def my_certificates():
-    user_id = int(get_jwt_identity())
+    user_id = _current_user_id()
+    if user_id is None:
+        return jsonify({"error": "No tienes permiso para acceder a este recurso"}), 403
+    # selectinload: serialize() lee c.user y c.learning_path; sin eager
+    # loading, cada certificado lanzaba su propia consulta de ruta (N+1
+    # medido: 4 SQL con 2 certificados; con eager loading son 3 fijos).
     certs = db.session.execute(
         db.select(Certificate).filter_by(user_id=user_id)
+        .options(selectinload(Certificate.user),
+                 selectinload(Certificate.learning_path))
         .order_by(Certificate.issued_at.desc())).scalars().all()
     return jsonify([c.serialize() for c in certs]), 200
 
@@ -915,10 +1011,64 @@ def _tutor_fragmentos(contenido):
     return fragmentos
 
 
+def _tutor_clave_indice():
+    """Huella del contenido del que depende el índice TF-IDF.
+
+    Incluye, por lección y en orden de id: su id, su módulo, su título
+    y su contenido íntegro, más el título del módulo y el id y título
+    de la ruta (todo ello alimenta los fragmentos, los tokens de
+    contexto y las fuentes que devuelve el tutor). No hay columna de
+    «última modificación» en el modelo, así que la huella se calcula
+    con un hash SHA-256 sobre una sola consulta de columnas (sin
+    cargar objetos ORM): cualquier alta, baja o edición de ese
+    contenido cambia la huella y obliga a reconstruir; si no cambia,
+    el índice se reutiliza tal cual.
+    """
+    filas = db.session.execute(
+        db.select(Lesson.id, Lesson.module_id, Lesson.title,
+                  Lesson.content, Module.id, Module.title,
+                  LearningPath.id, LearningPath.title)
+        .join(Module, Module.id == Lesson.module_id)
+        .join(LearningPath, LearningPath.id == Module.learning_path_id)
+        .order_by(Lesson.id)).all()
+    huella = hashlib.sha256()
+    for fila in filas:
+        huella.update(repr(tuple(fila)).encode("utf-8"))
+        huella.update(b"\n")
+    return huella.hexdigest()
+
+
+# Índice TF-IDF cacheado: construirlo cuesta ~8-15 ms y 3 consultas
+# (medido con la semilla: 71 fragmentos, 863 términos), y antes se
+# rehacía en CADA petición al tutor. La huella de arriba es la única
+# invalidación: se recalcula en cada petición (1 consulta ligera) y
+# el índice solo se reconstruye cuando el contenido cambia.
+_TUTOR_CACHE = {"clave": None, "docs": None, "idf": None}
+
+
 def _tutor_indice():
+    """Índice TF-IDF reutilizable: se reconstruye solo si cambia el contenido."""
+    clave = _tutor_clave_indice()
+    if _TUTOR_CACHE["clave"] == clave and _TUTOR_CACHE["docs"] is not None:
+        # Copias superficiales: tutor_pregunta anota «score» y ordena
+        # los documentos; así no muta lo cacheado (los vectores y los
+        # textos compartidos solo se leen, nunca se escriben).
+        return [dict(d) for d in _TUTOR_CACHE["docs"]], _TUTOR_CACHE["idf"]
+    docs, idf = _tutor_construir_indice()
+    _TUTOR_CACHE.update(clave=clave, docs=docs, idf=idf)
+    return [dict(d) for d in docs], idf
+
+
+def _tutor_construir_indice():
     """Construye el índice TF-IDF de fragmentos de todas las lecciones."""
+    # selectinload: sin esto, lesson.module y module.learning_path se
+    # cargaban en perezoso, una consulta por módulo/ruta (8 SQL en
+    # total por construcción; con eager loading son 3).
     lessons = db.session.execute(
-        db.select(Lesson).order_by(Lesson.id)).scalars().all()
+        db.select(Lesson)
+        .options(selectinload(Lesson.module)
+                 .selectinload(Module.learning_path))
+        .order_by(Lesson.id)).scalars().all()
     docs = []
     for lesson in lessons:
         contexto = (
@@ -978,8 +1128,12 @@ def _tutor_fuente(doc):
 
 @api.route('/tutor', methods=['POST'])
 def tutor_pregunta():
-    body = request.get_json(silent=True) or {}
-    pregunta = (body.get("question") or "").strip()
+    body = request.get_json(silent=True)
+    if not isinstance(body, dict):
+        body = {}
+    # _texto devuelve '' si question falta o no es cadena (antes, un
+    # question numérico o un cuerpo-lista reventaban con 500 HTML).
+    pregunta = _texto(body, "question")
     if not pregunta:
         return jsonify({"error": "Escribe una pregunta para el tutor"}), 400
     if len(pregunta) > 500:
