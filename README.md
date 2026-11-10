@@ -70,8 +70,8 @@ usando **únicamente el contenido de las lecciones de Blockali**:
 | --- | --- |
 | Frontend | React 18 + Vite, React Router 6, Bootstrap 5 (sistema de diseño propio en tema oscuro) |
 | Backend | Flask, SQLAlchemy 2, Flask-JWT-Extended, Flask-Mail, Alembic |
-| Base de datos | PostgreSQL (SQLite en desarrollo) |
-| Despliegue | PythonAnywhere (producción) · `render.yaml` disponible como alternativa |
+| Base de datos | SQLite (producción y desarrollo, vía SQLAlchemy) |
+| Despliegue | PythonAnywhere (producción) · `render.yaml` incluido como plantilla alternativa, sin despliegue activo |
 
 ## Ejecutar en local
 
